@@ -49,3 +49,36 @@ export async function updateUserRole(userId: string, role: UserRole) {
     .eq('id', userId);
   if (error) throw error;
 }
+
+export async function fetchAllUsers() {
+  const { data, error } = await supabase
+    .from('users')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function approveUser(userId: string) {
+  const { error } = await supabase
+    .from('users')
+    .update({ is_active: true })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+export async function deactivateUser(userId: string) {
+  const { error } = await supabase
+    .from('users')
+    .update({ is_active: false })
+    .eq('id', userId);
+  if (error) throw error;
+}
+
+export async function promoteToAdmin(userId: string) {
+  const { error } = await supabase
+    .from('users')
+    .update({ role: 'admin' })
+    .eq('id', userId);
+  if (error) throw error;
+}

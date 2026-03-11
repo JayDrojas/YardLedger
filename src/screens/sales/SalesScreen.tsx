@@ -1,21 +1,16 @@
 import { useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useSales } from '../../hooks/useSales';
+import { RefreshableList } from '../../components';
 import { colors, spacing, fontSize } from '../../constants';
+import { calculateTotalProfit } from '../../utils/calculations';
 
 export default function SalesScreen() {
   const { t } = useT();
   const { sales, loading, refresh } = useSales();
-
-  const totalProfit = sales.reduce((sum, sale) => sum + Number(sale.profit), 0);
+  const totalProfit = calculateTotalProfit(sales);
 
   useFocusEffect(
     useCallback(() => {
@@ -38,11 +33,13 @@ export default function SalesScreen() {
           </Text>
         </View>
       )}
-      <FlatList
+      <RefreshableList
         data={sales}
         keyExtractor={(item) => item.id}
-        refreshing={loading}
+        loading={loading}
         onRefresh={refresh}
+        emptyTitle={t.noSales}
+        emptySubtitle={t.recordSalesProfit}
         renderItem={({ item }) => {
           const profit = Number(item.profit);
           return (
@@ -72,19 +69,6 @@ export default function SalesScreen() {
             </View>
           );
         }}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator
-              color={colors.accent}
-              style={{ marginTop: 100 }}
-            />
-          ) : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t.noSales}</Text>
-              <Text style={styles.emptySubtext}>{t.recordSalesProfit}</Text>
-            </View>
-          )
-        }
       />
     </View>
   );
@@ -133,7 +117,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   metalName: {
-    color: colors.text,
+    color: colors.textPrimary,
     fontSize: fontSize.lg,
     fontWeight: 'bold',
   },
@@ -154,20 +138,5 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
-  },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    marginBottom: spacing.sm,
-  },
-  emptySubtext: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
   },
 });

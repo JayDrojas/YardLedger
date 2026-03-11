@@ -1,0 +1,88 @@
+import {
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
+import type { TouchableOpacityProps } from 'react-native';
+import { colors, spacing, fontSize, borderRadius } from '../constants';
+
+type ButtonVariant = 'primary' | 'danger' | 'outline' | 'success';
+
+interface ButtonProps extends TouchableOpacityProps {
+  title: string;
+  variant?: ButtonVariant;
+  loading?: boolean;
+  small?: boolean;
+}
+
+const variantStyles = {
+  primary: { bg: colors.accent, text: colors.background },
+  danger: { bg: colors.danger, text: colors.white },
+  outline: { bg: 'transparent', text: colors.textSecondary },
+  success: { bg: colors.success, text: colors.white },
+} as const;
+
+export default function Button({
+  title,
+  variant = 'primary',
+  loading = false,
+  small = false,
+  disabled,
+  style,
+  ...props
+}: ButtonProps) {
+  const v = variantStyles[variant];
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.base,
+        small && styles.small,
+        { backgroundColor: v.bg },
+        variant === 'outline' && styles.outline,
+        (disabled || loading) && styles.disabled,
+        style,
+      ]}
+      disabled={disabled || loading}
+      {...props}
+    >
+      {loading ? (
+        <ActivityIndicator color={v.text} />
+      ) : (
+        <Text
+          style={[styles.text, small && styles.textSmall, { color: v.text }]}
+        >
+          {title}
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  small: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+  },
+  outline: {
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  disabled: {
+    opacity: 0.4,
+  },
+  text: {
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
+  },
+  textSmall: {
+    fontSize: fontSize.sm,
+  },
+});

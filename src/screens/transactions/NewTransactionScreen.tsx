@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   View,
   Text,
@@ -6,17 +5,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
-import type { LineItemInput } from '../../types';
 import AdminPinModal from '../../components/AdminPinModal';
 import { useT } from '../../hooks/useT';
-import { useMetals } from '../../hooks/useMetals';
-import { useAppSelector, type RootState } from '../../store';
-import { createReceipt } from '../../services/receipts';
+import { useNewTransaction } from '../../hooks/useNewTransaction';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -25,151 +20,7 @@ type Props = NativeStackScreenProps<
 
 export default function NewTransactionScreen({ navigation }: Props) {
   const { t } = useT();
-  const { metals, loading: metalsLoading } = useMetals();
-  const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const activeMetals = metals.filter((m) => m.is_active);
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [selectedMetal, setSelectedMetal] = useState<{
-    id: string;
-    name: string;
-    price_per_lb: number;
-  } | null>(null);
-  const [weight, setWeight] = useState('');
-  const [lineItems, setLineItems] = useState<LineItemInput[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  // Price override state
-  const [showAdminModal, setShowAdminModal] = useState(false);
-  const [overrideIndex, setOverrideIndex] = useState<number | null>(null);
-  const [overridePrice, setOverridePrice] = useState('');
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-
-  const currentTotal =
-    (parseFloat(weight) || 0) * (selectedMetal?.price_per_lb ?? 0);
-  const receiptTotal = lineItems.reduce((sum, item) => sum + item.total, 0);
-
-  const handleAddLineItem = () => {
-    if (!selectedMetal) return;
-    const w = parseFloat(weight);
-    if (!w || w <= 0) {
-      Alert.alert(t.error, t.enterValidWeight);
-      return;
-    }
-
-    setLineItems((prev) => [
-      ...prev,
-      {
-        metalId: selectedMetal.id,
-        metalName: selectedMetal.name,
-        weight: w,
-        pricePerLb: selectedMetal.price_per_lb,
-        originalPricePerLb: selectedMetal.price_per_lb,
-        isPriceOverride: false,
-        overrideApprovedBy: null,
-        total: w * selectedMetal.price_per_lb,
-      },
-    ]);
-    setWeight('');
-  };
-
-  const handleRemoveLineItem = (index: number) => {
-    setLineItems((prev) => prev.filter((_, i) => i !== index));
-    if (editingIndex === index) setEditingIndex(null);
-  };
-
-  // Step 1: Worker taps price on a line item and enters desired price
-  const handleStartPriceEdit = (index: number) => {
-    setEditingIndex(index);
-    setOverridePrice(lineItems[index].pricePerLb.toString());
-  };
-
-  // Step 2: Worker submits new price → triggers admin auth modal
-  const handleRequestOverride = (index: number) => {
-    const newPrice = parseFloat(overridePrice);
-    if (!newPrice || newPrice <= 0) {
-      Alert.alert(t.error, t.enterValidPrice);
-      return;
-    }
-    if (newPrice === lineItems[index].originalPricePerLb) {
-      // Same as catalog price, just cancel the edit
-      setEditingIndex(null);
-      return;
-    }
-    setOverrideIndex(index);
-    setShowAdminModal(true);
-  };
-
-  // Step 3: Admin authenticates → apply the override
-  const handleAdminApproved = (adminUserId: string) => {
-    if (overrideIndex === null) return;
-    const newPrice = parseFloat(overridePrice);
-
-    setLineItems((prev) =>
-      prev.map((item, i) =>
-        i === overrideIndex
-          ? {
-              ...item,
-              pricePerLb: newPrice,
-              isPriceOverride: true,
-              overrideApprovedBy: adminUserId,
-              total: item.weight * newPrice,
-            }
-          : item
-      )
-    );
-
-    setShowAdminModal(false);
-    setOverrideIndex(null);
-    setEditingIndex(null);
-    setOverridePrice('');
-  };
-
-  const handleCancelOverride = () => {
-    setShowAdminModal(false);
-    setOverrideIndex(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingIndex(null);
-    setOverridePrice('');
-  };
-
-  const handleSave = async () => {
-    if (!customerName) {
-      Alert.alert(t.error, t.enterCustomerName);
-      return;
-    }
-    if (lineItems.length === 0) {
-      Alert.alert(t.error, t.addAtLeastOneItem);
-      return;
-    }
-    if (!profile) {
-      Alert.alert(t.error, 'No user profile found');
-      return;
-    }
-
-    setSaving(true);
-    try {
-      await createReceipt({
-        customerName,
-        customerPhone,
-        type: 'buy',
-        subtotal: receiptTotal,
-        workerId: profile.id,
-        notes: '',
-        lineItems,
-      });
-      Alert.alert(t.success, t.receiptSaved, [
-        { text: t.ok, onPress: () => navigation.goBack() },
-      ]);
-    } catch (err) {
-      console.error('[handleSave] Error:', err);
-      Alert.alert(t.error, (err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
+  const tx = useNewTransaction();
 
   return (
     <>
@@ -179,36 +30,36 @@ export default function NewTransactionScreen({ navigation }: Props) {
           style={styles.input}
           placeholder={`${t.customerName} *`}
           placeholderTextColor="#666"
-          value={customerName}
-          onChangeText={setCustomerName}
+          value={tx.customerName}
+          onChangeText={tx.setCustomerName}
         />
         <TextInput
           style={styles.input}
           placeholder={t.phoneNumber}
           placeholderTextColor="#666"
-          value={customerPhone}
-          onChangeText={setCustomerPhone}
+          value={tx.customerPhone}
+          onChangeText={tx.setCustomerPhone}
           keyboardType="phone-pad"
         />
 
         <Text style={styles.sectionTitle}>{t.addMetals}</Text>
-        {metalsLoading ? (
+        {tx.metalsLoading ? (
           <ActivityIndicator color="#4ecdc4" style={{ marginVertical: 16 }} />
         ) : (
           <View style={styles.metalGrid}>
-            {activeMetals.map((metal) => (
+            {tx.activeMetals.map((metal) => (
               <TouchableOpacity
                 key={metal.id}
                 style={[
                   styles.metalChip,
-                  selectedMetal?.id === metal.id && styles.metalChipActive,
+                  tx.selectedMetal?.id === metal.id && styles.metalChipActive,
                 ]}
-                onPress={() => setSelectedMetal(metal)}
+                onPress={() => tx.setSelectedMetal(metal)}
               >
                 <Text
                   style={[
                     styles.metalChipText,
-                    selectedMetal?.id === metal.id &&
+                    tx.selectedMetal?.id === metal.id &&
                       styles.metalChipTextActive,
                   ]}
                 >
@@ -217,7 +68,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 <Text
                   style={[
                     styles.metalChipPrice,
-                    selectedMetal?.id === metal.id &&
+                    tx.selectedMetal?.id === metal.id &&
                       styles.metalChipTextActive,
                   ]}
                 >
@@ -233,29 +84,27 @@ export default function NewTransactionScreen({ navigation }: Props) {
             style={[styles.input, styles.weightInput]}
             placeholder={t.weightLbs}
             placeholderTextColor="#666"
-            value={weight}
-            onChangeText={setWeight}
+            value={tx.weight}
+            onChangeText={tx.setWeight}
             keyboardType="decimal-pad"
           />
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={handleAddLineItem}
-          >
+          <TouchableOpacity style={styles.addButton} onPress={tx.addLineItem}>
             <Text style={styles.addButtonText}>{t.add}</Text>
           </TouchableOpacity>
         </View>
 
-        {weight && selectedMetal ? (
+        {tx.weight && tx.selectedMetal ? (
           <Text style={styles.previewText}>
-            {selectedMetal.name}: {weight} lbs = ${currentTotal.toFixed(2)}
+            {tx.selectedMetal.name}: {tx.weight} lbs = $
+            {tx.currentTotal.toFixed(2)}
           </Text>
         ) : null}
 
-        {lineItems.length > 0 && (
+        {tx.lineItems.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>{t.lineItems}</Text>
             <Text style={styles.hintText}>{t.tapPriceToOverride}</Text>
-            {lineItems.map((item, index) => (
+            {tx.lineItems.map((item, index) => (
               <View key={index} style={styles.lineItemRow}>
                 <View style={styles.lineItemInfo}>
                   <View style={styles.lineItemHeader}>
@@ -265,33 +114,31 @@ export default function NewTransactionScreen({ navigation }: Props) {
                     )}
                   </View>
 
-                  {editingIndex === index ? (
+                  {tx.editingIndex === index ? (
                     <View style={styles.editPriceRow}>
                       <Text style={styles.editPriceLabel}>{t.pricePerLb}</Text>
                       <TextInput
                         style={styles.editPriceInput}
-                        value={overridePrice}
-                        onChangeText={setOverridePrice}
+                        value={tx.overridePrice}
+                        onChangeText={tx.setOverridePrice}
                         keyboardType="decimal-pad"
                         autoFocus
                       />
                       <TouchableOpacity
                         style={styles.editPriceConfirm}
-                        onPress={() => handleRequestOverride(index)}
+                        onPress={() => tx.requestOverride(index)}
                       >
                         <Text style={styles.editPriceConfirmText}>OK</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.editPriceCancel}
-                        onPress={handleCancelEdit}
+                        onPress={tx.cancelEdit}
                       >
                         <Text style={styles.editPriceCancelText}>X</Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    <TouchableOpacity
-                      onPress={() => handleStartPriceEdit(index)}
-                    >
+                    <TouchableOpacity onPress={() => tx.startPriceEdit(index)}>
                       <Text style={styles.lineItemDetail}>
                         {item.weight} lbs @{' '}
                         <Text
@@ -317,7 +164,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   ${item.total.toFixed(2)}
                 </Text>
                 <TouchableOpacity
-                  onPress={() => handleRemoveLineItem(index)}
+                  onPress={() => tx.removeLineItem(index)}
                   style={styles.removeButton}
                 >
                   <Text style={styles.removeButtonText}>X</Text>
@@ -329,20 +176,19 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>{t.receiptTotal}</Text>
-          <Text style={styles.totalValue}>${receiptTotal.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>${tx.receiptTotal.toFixed(2)}</Text>
         </View>
-
-        {/* TODO: Signature capture component */}
 
         <TouchableOpacity
           style={[
             styles.saveButton,
-            (lineItems.length === 0 || saving) && styles.saveButtonDisabled,
+            (tx.lineItems.length === 0 || tx.saving) &&
+              styles.saveButtonDisabled,
           ]}
-          onPress={handleSave}
-          disabled={lineItems.length === 0 || saving}
+          onPress={() => tx.saveReceipt(() => navigation.goBack())}
+          disabled={tx.lineItems.length === 0 || tx.saving}
         >
-          {saving ? (
+          {tx.saving ? (
             <ActivityIndicator color="#0f0f23" />
           ) : (
             <Text style={styles.saveButtonText}>{t.saveReceipt}</Text>
@@ -351,9 +197,9 @@ export default function NewTransactionScreen({ navigation }: Props) {
       </ScrollView>
 
       <AdminPinModal
-        visible={showAdminModal}
-        onSuccess={handleAdminApproved}
-        onCancel={handleCancelOverride}
+        visible={tx.showAdminModal}
+        onSuccess={tx.approveOverride}
+        onCancel={tx.cancelOverride}
       />
     </>
   );

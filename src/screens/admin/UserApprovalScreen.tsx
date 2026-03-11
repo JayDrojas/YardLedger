@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,101 +6,63 @@ import {
   FlatList,
   Alert,
 } from 'react-native';
-import { supabase } from '../../config/supabase';
 import { useT } from '../../hooks/useT';
+import { useUserApproval } from '../../hooks/useUserApproval';
+import type { PendingUser } from '../../types';
 import { colors, spacing, fontSize } from '../../constants';
-
-interface PendingUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  is_active: boolean;
-  created_at: string;
-}
 
 export default function UserApprovalScreen() {
   const { t } = useT();
-  const [users, setUsers] = useState<PendingUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    pendingUsers,
+    activeUsers,
+    loading,
+    refresh,
+    handleApprove,
+    handleDeactivate,
+    handlePromote,
+  } = useUserApproval();
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      Alert.alert(t.error, error.message);
-    } else {
-      setUsers(data ?? []);
-    }
-    setLoading(false);
-  }, [t.error]);
-
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  const handleApprove = async (userId: string) => {
-    const { error } = await supabase
-      .from('users')
-      .update({ is_active: true })
-      .eq('id', userId);
-
-    if (error) {
-      Alert.alert(t.error, error.message);
-    } else {
-      loadUsers();
+  const onApprove = async (userId: string) => {
+    try {
+      await handleApprove(userId);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
     }
   };
 
-  const handleDeactivate = async (userId: string) => {
+  const onDeactivate = (userId: string) => {
     Alert.alert(t.deactivateUser, t.areYouSure, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.deactivate,
         style: 'destructive',
         onPress: async () => {
-          const { error } = await supabase
-            .from('users')
-            .update({ is_active: false })
-            .eq('id', userId);
-
-          if (error) {
-            Alert.alert(t.error, error.message);
-          } else {
-            loadUsers();
+          try {
+            await handleDeactivate(userId);
+          } catch (err) {
+            Alert.alert(t.error, (err as Error).message);
           }
         },
       },
     ]);
   };
 
-  const handleSetAdmin = async (userId: string) => {
+  const onPromote = (userId: string) => {
     Alert.alert(t.promoteToAdmin, t.promoteAdminMessage, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.promote,
         onPress: async () => {
-          const { error } = await supabase
-            .from('users')
-            .update({ role: 'admin' })
-            .eq('id', userId);
-
-          if (error) {
-            Alert.alert(t.error, error.message);
-          } else {
-            loadUsers();
+          try {
+            await handlePromote(userId);
+          } catch (err) {
+            Alert.alert(t.error, (err as Error).message);
           }
         },
       },
     ]);
   };
-
-  const pendingUsers = users.filter((u) => !u.is_active);
-  const activeUsers = users.filter((u) => u.is_active);
 
   const renderUser = ({
     item,
@@ -121,7 +82,7 @@ export default function UserApprovalScreen() {
         {isPending ? (
           <TouchableOpacity
             style={styles.approveButton}
-            onPress={() => handleApprove(item.id)}
+            onPress={() => onApprove(item.id)}
           >
             <Text style={styles.approveButtonText}>{t.approve}</Text>
           </TouchableOpacity>
@@ -130,14 +91,14 @@ export default function UserApprovalScreen() {
             {item.role !== 'admin' && (
               <TouchableOpacity
                 style={styles.adminButton}
-                onPress={() => handleSetAdmin(item.id)}
+                onPress={() => onPromote(item.id)}
               >
                 <Text style={styles.adminButtonText}>{t.admin}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               style={styles.deactivateButton}
-              onPress={() => handleDeactivate(item.id)}
+              onPress={() => onDeactivate(item.id)}
             >
               <Text style={styles.deactivateButtonText}>{t.deactivate}</Text>
             </TouchableOpacity>
@@ -153,7 +114,7 @@ export default function UserApprovalScreen() {
       data={[...pendingUsers, ...activeUsers]}
       keyExtractor={(item) => item.id}
       refreshing={loading}
-      onRefresh={loadUsers}
+      onRefresh={refresh}
       ListHeaderComponent={
         pendingUsers.length > 0 ? (
           <View style={styles.sectionHeader}>

@@ -17,3 +17,28 @@ export interface LineItemInput {
   overrideApprovedBy: string | null;
   total: number;
 }
+
+export interface Metal {
+  id: string;
+  name: string;
+  price_per_lb: number;
+  is_active: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  supabaseId: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  isActive: boolean;
+}
+
+export interface PendingUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}

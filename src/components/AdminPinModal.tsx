@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { supabase } from '../config/supabase';
+import { useAdminVerification } from '../hooks/useAdminVerification';
 import { useT } from '../hooks/useT';
 
 interface AdminPinModalProps {
@@ -22,54 +22,23 @@ export default function AdminPinModal({
   onCancel,
 }: AdminPinModalProps) {
   const { t } = useT();
+  const { verify, loading, error, reset } = useAdminVerification();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const passwordRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (visible) {
       setEmail('');
       setPassword('');
-      setError('');
+      reset();
     }
-  }, [visible]);
+  }, [visible, reset]);
 
   const handleVerify = async () => {
-    if (!email || !password) {
-      setError(t.enterAdminCredentials);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    try {
-      // TODO: Replace with actual admin verification against Supabase
-      // For now, verify by signing in and checking the user's role
-      // In production, this should be a server-side check via RPC/edge function
-      const { data, error: authError } = await supabase.auth.signInWithPassword(
-        {
-          email,
-          password,
-        }
-      );
-
-      if (authError) {
-        setError(t.invalidCredentials);
-        setLoading(false);
-        return;
-      }
-
-      // TODO: Check user role from users table
-      // For now we accept any valid login as admin approval
-      const adminUserId = data.user?.id ?? 'unknown';
-      onSuccess(adminUserId);
-    } catch {
-      setError(t.verificationFailed);
-    } finally {
-      setLoading(false);
+    const userId = await verify(email, password);
+    if (userId) {
+      onSuccess(userId);
     }
   };
 

@@ -60,14 +60,12 @@ export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
 export const fetchProfile = createAsyncThunk(
   'auth/fetchProfile',
   async (supabaseUserId: string) => {
-    console.log('[fetchProfile] Fetching for:', supabaseUserId);
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('supabase_id', supabaseUserId)
       .single();
 
-    console.log('[fetchProfile] Result:', { data, error });
     if (error) throw error;
 
     return {

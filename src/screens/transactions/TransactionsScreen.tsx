@@ -1,18 +1,12 @@
 import { useCallback } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useReceipts } from '../../hooks/useReceipts';
 import { useAppSelector, type RootState } from '../../store';
+import { RefreshableList } from '../../components';
 import { colors, spacing, fontSize } from '../../constants';
 
 type Props = NativeStackScreenProps<
@@ -28,7 +22,6 @@ export default function TransactionsScreen({ navigation }: Props) {
     isAdmin ? undefined : profile?.id
   );
 
-  // Refresh when screen comes into focus (e.g. after creating a receipt)
   useFocusEffect(
     useCallback(() => {
       refresh();
@@ -37,11 +30,13 @@ export default function TransactionsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <RefreshableList
         data={receipts}
         keyExtractor={(item) => item.id}
-        refreshing={loading}
+        loading={loading}
         onRefresh={refresh}
+        emptyTitle={t.noTransactions}
+        emptySubtitle={t.tapToRecordBuy}
         renderItem={({ item }) => (
           <View style={styles.receiptCard}>
             <View style={styles.receiptHeader}>
@@ -62,19 +57,6 @@ export default function TransactionsScreen({ navigation }: Props) {
             )}
           </View>
         )}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator
-              color={colors.accent}
-              style={{ marginTop: 100 }}
-            />
-          ) : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t.noTransactions}</Text>
-              <Text style={styles.emptySubtext}>{t.tapToRecordBuy}</Text>
-            </View>
-          )
-        }
       />
       <TouchableOpacity
         style={styles.fab}
@@ -115,7 +97,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   customerName: {
-    color: colors.text,
+    color: colors.textPrimary,
     fontSize: fontSize.lg,
   },
   receiptDate: {
@@ -127,21 +109,6 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
-  },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    marginBottom: spacing.sm,
-  },
-  emptySubtext: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
   },
   fab: {
     position: 'absolute',

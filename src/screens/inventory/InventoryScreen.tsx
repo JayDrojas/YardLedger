@@ -1,15 +1,11 @@
 import { useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useInventory } from '../../hooks/useInventory';
+import { RefreshableList } from '../../components';
 import { colors, spacing, fontSize } from '../../constants';
+import { calculateInventoryValue } from '../../utils/calculations';
 
 export default function InventoryScreen() {
   const { t } = useT();
@@ -23,11 +19,13 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
+      <RefreshableList
         data={inventory}
         keyExtractor={(item) => item.id}
-        refreshing={loading}
+        loading={loading}
         onRefresh={refresh}
+        emptyTitle={t.noInventory}
+        emptySubtitle={t.inventoryAutoUpdate}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
@@ -41,23 +39,13 @@ export default function InventoryScreen() {
             </Text>
             <Text style={styles.detail}>
               Value: $
-              {(Number(item.weight) * Number(item.avg_cost_per_lb)).toFixed(2)}
+              {calculateInventoryValue(
+                Number(item.weight),
+                Number(item.avg_cost_per_lb)
+              ).toFixed(2)}
             </Text>
           </View>
         )}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator
-              color={colors.accent}
-              style={{ marginTop: 100 }}
-            />
-          ) : (
-            <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t.noInventory}</Text>
-              <Text style={styles.emptySubtext}>{t.inventoryAutoUpdate}</Text>
-            </View>
-          )
-        }
       />
     </View>
   );
@@ -82,7 +70,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   metalName: {
-    color: colors.text,
+    color: colors.textPrimary,
     fontSize: fontSize.lg,
     fontWeight: 'bold',
   },
@@ -95,20 +83,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
-  },
-  empty: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    marginBottom: spacing.sm,
-  },
-  emptySubtext: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
   },
 });
