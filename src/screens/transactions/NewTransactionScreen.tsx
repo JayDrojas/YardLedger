@@ -9,9 +9,16 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
-import AdminPinModal from '../../components/AdminPinModal';
+import { useState, useRef } from 'react';
+import {
+  AccessCodeModal,
+  SignaturePad,
+  AddLineItemModal,
+} from '../../components';
+import type { SignaturePadHandle } from '../../components/SignaturePad';
 import { useT } from '../../hooks/useT';
 import { useNewTransaction } from '../../hooks/useNewTransaction';
+import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -20,7 +27,10 @@ type Props = NativeStackScreenProps<
 
 export default function NewTransactionScreen({ navigation }: Props) {
   const { t } = useT();
-  const tx = useNewTransaction();
+  const signaturePadRef = useRef<SignaturePadHandle>(null);
+  const tx = useNewTransaction(signaturePadRef);
+  const [printAfterSave, setPrintAfterSave] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   return (
     <>
@@ -29,76 +39,25 @@ export default function NewTransactionScreen({ navigation }: Props) {
         <TextInput
           style={styles.input}
           placeholder={`${t.customerName} *`}
-          placeholderTextColor="#666"
+          placeholderTextColor={colors.textTertiary}
           value={tx.customerName}
           onChangeText={tx.setCustomerName}
         />
         <TextInput
           style={styles.input}
           placeholder={t.phoneNumber}
-          placeholderTextColor="#666"
+          placeholderTextColor={colors.textTertiary}
           value={tx.customerPhone}
           onChangeText={tx.setCustomerPhone}
           keyboardType="phone-pad"
         />
 
-        <Text style={styles.sectionTitle}>{t.addMetals}</Text>
-        {tx.metalsLoading ? (
-          <ActivityIndicator color="#4ecdc4" style={{ marginVertical: 16 }} />
-        ) : (
-          <View style={styles.metalGrid}>
-            {tx.activeMetals.map((metal) => (
-              <TouchableOpacity
-                key={metal.id}
-                style={[
-                  styles.metalChip,
-                  tx.selectedMetal?.id === metal.id && styles.metalChipActive,
-                ]}
-                onPress={() => tx.setSelectedMetal(metal)}
-              >
-                <Text
-                  style={[
-                    styles.metalChipText,
-                    tx.selectedMetal?.id === metal.id &&
-                      styles.metalChipTextActive,
-                  ]}
-                >
-                  {metal.name}
-                </Text>
-                <Text
-                  style={[
-                    styles.metalChipPrice,
-                    tx.selectedMetal?.id === metal.id &&
-                      styles.metalChipTextActive,
-                  ]}
-                >
-                  ${metal.price_per_lb}/lb
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        <View style={styles.addRow}>
-          <TextInput
-            style={[styles.input, styles.weightInput]}
-            placeholder={t.weightLbs}
-            placeholderTextColor="#666"
-            value={tx.weight}
-            onChangeText={tx.setWeight}
-            keyboardType="decimal-pad"
-          />
-          <TouchableOpacity style={styles.addButton} onPress={tx.addLineItem}>
-            <Text style={styles.addButtonText}>{t.add}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {tx.weight && tx.selectedMetal ? (
-          <Text style={styles.previewText}>
-            {tx.selectedMetal.name}: {tx.weight} lbs = $
-            {tx.currentTotal.toFixed(2)}
-          </Text>
-        ) : null}
+        <TouchableOpacity
+          style={styles.addLineItemButton}
+          onPress={() => setShowAddModal(true)}
+        >
+          <Text style={styles.addLineItemButtonText}>{t.addLineItem}</Text>
+        </TouchableOpacity>
 
         {tx.lineItems.length > 0 && (
           <>
@@ -179,27 +138,76 @@ export default function NewTransactionScreen({ navigation }: Props) {
           <Text style={styles.totalValue}>${tx.receiptTotal.toFixed(2)}</Text>
         </View>
 
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (tx.lineItems.length === 0 || tx.saving) &&
-              styles.saveButtonDisabled,
-          ]}
-          onPress={() => tx.saveReceipt(() => navigation.goBack())}
-          disabled={tx.lineItems.length === 0 || tx.saving}
-        >
-          {tx.saving ? (
-            <ActivityIndicator color="#0f0f23" />
-          ) : (
-            <Text style={styles.saveButtonText}>{t.saveReceipt}</Text>
-          )}
-        </TouchableOpacity>
+        <SignaturePad
+          ref={signaturePadRef}
+          onSignatureChange={tx.setSignature}
+          label={t.customerSignature}
+          clearLabel={t.clear}
+        />
+
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              styles.saveButtonOutline,
+              (tx.lineItems.length === 0 || tx.saving) &&
+                styles.saveButtonDisabled,
+            ]}
+            onPress={() => {
+              setPrintAfterSave(false);
+              tx.saveReceipt((receiptId) =>
+                navigation.replace('ReceiptDetail', { receiptId })
+              );
+            }}
+            disabled={tx.lineItems.length === 0 || tx.saving}
+          >
+            {tx.saving && !printAfterSave ? (
+              <ActivityIndicator color={colors.accent} />
+            ) : (
+              <Text style={styles.saveButtonOutlineText}>{t.saveReceipt}</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              styles.saveButtonPrimary,
+              (tx.lineItems.length === 0 || tx.saving) &&
+                styles.saveButtonDisabled,
+            ]}
+            onPress={() => {
+              setPrintAfterSave(true);
+              tx.saveReceipt((receiptId) =>
+                navigation.replace('ReceiptDetail', {
+                  receiptId,
+                  printOnLoad: true,
+                })
+              );
+            }}
+            disabled={tx.lineItems.length === 0 || tx.saving}
+          >
+            {tx.saving && printAfterSave ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.saveButtonText}>{t.saveAndPrint}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
-      <AdminPinModal
-        visible={tx.showAdminModal}
+      <AccessCodeModal
+        visible={tx.showCodeModal}
         onSuccess={tx.approveOverride}
         onCancel={tx.cancelOverride}
+      />
+
+      <AddLineItemModal
+        visible={showAddModal}
+        onAdd={(metal, weight) => {
+          tx.addLineItem(metal, weight);
+          setShowAddModal(false);
+        }}
+        onClose={() => setShowAddModal(false)}
       />
     </>
   );
@@ -208,96 +216,54 @@ export default function NewTransactionScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f0f23',
-    padding: 16,
+    backgroundColor: colors.background,
+    padding: spacing.lg,
   },
   sectionTitle: {
-    color: '#4ecdc4',
-    fontSize: 18,
+    color: colors.accent,
+    fontSize: fontSize.xl,
     fontWeight: 'bold',
-    marginBottom: 12,
-    marginTop: 16,
+    marginBottom: spacing.md,
+    marginTop: spacing.lg,
   },
   hintText: {
-    color: '#555',
-    fontSize: 12,
-    marginBottom: 8,
-    marginTop: -8,
+    color: colors.textTertiary,
+    fontSize: fontSize.xs,
+    marginBottom: spacing.sm,
+    marginTop: -spacing.sm,
   },
   input: {
-    backgroundColor: '#1a1a2e',
-    color: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    fontSize: 16,
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    fontSize: fontSize.lg,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: colors.border,
   },
-  metalGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  metalChip: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+  addLineItemButton: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    marginTop: spacing.lg,
     borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#1a1a2e',
-    alignItems: 'center',
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
   },
-  metalChipActive: {
-    backgroundColor: '#4ecdc4',
-    borderColor: '#4ecdc4',
-  },
-  metalChipText: {
-    color: '#888',
-    fontSize: 14,
-  },
-  metalChipPrice: {
-    color: '#555',
-    fontSize: 11,
-    marginTop: 2,
-  },
-  metalChipTextActive: {
-    color: '#0f0f23',
+  addLineItemButtonText: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
     fontWeight: 'bold',
-  },
-  addRow: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'flex-start',
-  },
-  weightInput: {
-    flex: 1,
-  },
-  addButton: {
-    backgroundColor: '#4ecdc4',
-    borderRadius: 8,
-    padding: 16,
-    alignItems: 'center',
-    minWidth: 80,
-  },
-  addButtonText: {
-    color: '#0f0f23',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  previewText: {
-    color: '#888',
-    fontSize: 14,
-    marginBottom: 8,
   },
   lineItemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
+    backgroundColor: colors.card,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.sm,
   },
   lineItemInfo: {
     flex: 1,
@@ -305,35 +271,35 @@ const styles = StyleSheet.create({
   lineItemHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: spacing.sm,
   },
   lineItemName: {
-    color: '#fff',
-    fontSize: 16,
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
     fontWeight: '600',
   },
   overrideBadge: {
-    color: '#ff6b6b',
-    fontSize: 10,
+    color: colors.danger,
+    fontSize: fontSize.xs,
     fontWeight: 'bold',
     backgroundColor: 'rgba(255, 107, 107, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 4,
+    borderRadius: borderRadius.sm,
     overflow: 'hidden',
   },
   lineItemDetail: {
-    color: '#888',
-    fontSize: 13,
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
     marginTop: 2,
   },
   overridePrice: {
-    color: '#ff6b6b',
+    color: colors.danger,
     fontWeight: 'bold',
   },
   originalPrice: {
-    color: '#555',
-    fontSize: 11,
+    color: colors.textTertiary,
+    fontSize: fontSize.xs,
     textDecorationLine: 'line-through',
   },
   editPriceRow: {
@@ -343,85 +309,103 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   editPriceLabel: {
-    color: '#888',
-    fontSize: 14,
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
   },
   editPriceInput: {
-    backgroundColor: '#0f0f23',
-    color: '#fff',
-    borderRadius: 6,
+    backgroundColor: colors.background,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.sm,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    fontSize: 14,
+    fontSize: fontSize.md,
     borderWidth: 1,
-    borderColor: '#4ecdc4',
+    borderColor: colors.accent,
     minWidth: 80,
   },
   editPriceConfirm: {
-    backgroundColor: '#4ecdc4',
-    borderRadius: 6,
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.sm,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
   editPriceConfirmText: {
-    color: '#0f0f23',
+    color: colors.background,
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: fontSize.sm,
   },
   editPriceCancel: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.sm,
     paddingVertical: 6,
   },
   editPriceCancelText: {
-    color: '#888',
+    color: colors.textSecondary,
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: fontSize.sm,
   },
   lineItemTotal: {
-    color: '#4ecdc4',
-    fontSize: 16,
+    color: colors.accent,
+    fontSize: fontSize.lg,
     fontWeight: 'bold',
-    marginRight: 12,
+    marginRight: spacing.md,
   },
   removeButton: {
-    padding: 8,
+    padding: spacing.sm,
   },
   removeButtonText: {
-    color: '#ff6b6b',
-    fontSize: 14,
+    color: colors.danger,
+    fontSize: fontSize.md,
     fontWeight: 'bold',
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#1a1a2e',
-    padding: 16,
-    borderRadius: 8,
-    marginVertical: 16,
+    backgroundColor: colors.card,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginVertical: spacing.lg,
   },
   totalLabel: {
-    color: '#888',
-    fontSize: 18,
+    color: colors.textSecondary,
+    fontSize: fontSize.xl,
   },
   totalValue: {
-    color: '#4ecdc4',
-    fontSize: 28,
+    color: colors.accent,
+    fontSize: fontSize.xxl,
     fontWeight: 'bold',
   },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    marginBottom: spacing.xxxl,
+  },
   saveButton: {
-    backgroundColor: '#4ecdc4',
-    borderRadius: 8,
-    padding: 16,
+    flex: 1,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
     alignItems: 'center',
-    marginBottom: 48,
+  },
+  saveButtonPrimary: {
+    backgroundColor: colors.accent,
+  },
+  saveButtonOutline: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.accent,
   },
   saveButtonDisabled: {
     opacity: 0.4,
   },
   saveButtonText: {
-    color: '#0f0f23',
-    fontSize: 18,
+    color: colors.background,
+    fontSize: fontSize.xl,
+    fontWeight: 'bold',
+  },
+  saveButtonOutlineText: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
     fontWeight: 'bold',
   },
 });

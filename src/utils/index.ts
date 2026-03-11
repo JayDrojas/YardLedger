@@ -5,3 +5,4 @@ export {
   calculateInventoryValue,
   calculateTotalProfit,
 } from './calculations';
+export { printReceipt } from './printReceipt';

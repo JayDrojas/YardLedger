@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { Metal } from '../types';
-import { fetchMetals } from '../services/metals';
+import type { MetalCategory } from '../types';
+import { fetchMetalCategories } from '../services/metals';
 
-export function useMetals() {
-  const [metals, setMetals] = useState<Metal[]>([]);
+export function useMetalCategories() {
+  const [categories, setCategories] = useState<MetalCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -11,8 +11,8 @@ export function useMetals() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchMetals();
-      setMetals(data);
+      const data = await fetchMetalCategories();
+      setCategories(data);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -24,5 +24,5 @@ export function useMetals() {
     load();
   }, [load]);
 
-  return { metals, loading, error, refresh: load };
+  return { categories, loading, error, refresh: load };
 }

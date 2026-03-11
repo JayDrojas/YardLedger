@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -8,11 +9,18 @@ import {
 } from 'react-native';
 import { useT } from '../../hooks/useT';
 import { useUserApproval } from '../../hooks/useUserApproval';
+import { useAppSelector, type RootState } from '../../store';
+import { createAccessCode } from '../../services/accessCodes';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { AdminStackParamList } from '../../navigation/MainNavigator';
 import type { PendingUser } from '../../types';
-import { colors, spacing, fontSize } from '../../constants';
+import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
-export default function UserApprovalScreen() {
+type Props = NativeStackScreenProps<AdminStackParamList, 'Users'>;
+
+export default function UserApprovalScreen({ navigation }: Props) {
   const { t } = useT();
+  const profile = useAppSelector((state: RootState) => state.auth.profile);
   const {
     pendingUsers,
     activeUsers,
@@ -22,6 +30,21 @@ export default function UserApprovalScreen() {
     handleDeactivate,
     handlePromote,
   } = useUserApproval();
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  const onGenerateCode = async () => {
+    if (!profile) return;
+    setGenerating(true);
+    try {
+      const code = await createAccessCode(profile.id);
+      setGeneratedCode(code);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const onApprove = async (userId: string) => {
     try {
@@ -116,13 +139,53 @@ export default function UserApprovalScreen() {
       refreshing={loading}
       onRefresh={refresh}
       ListHeaderComponent={
-        pendingUsers.length > 0 ? (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>
-              {t.pendingApproval} ({pendingUsers.length})
-            </Text>
+        <>
+          {/* Access Code Generator */}
+          <View style={styles.codeSection}>
+            <Text style={styles.codeSectionTitle}>{t.accessCode}</Text>
+            {generatedCode ? (
+              <View style={styles.codeDisplay}>
+                <Text style={styles.codeText}>{generatedCode}</Text>
+                <Text style={styles.codeHint}>{t.codeGenerated}</Text>
+                <TouchableOpacity
+                  style={styles.generateButton}
+                  onPress={onGenerateCode}
+                  disabled={generating}
+                >
+                  <Text style={styles.generateButtonText}>{t.generateNew}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.generateButton}
+                onPress={onGenerateCode}
+                disabled={generating}
+              >
+                <Text style={styles.generateButtonText}>
+                  {generating ? t.loading : t.generateCode}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
-        ) : null
+
+          {/* Pricing Link */}
+          <TouchableOpacity
+            style={styles.pricingButton}
+            onPress={() => navigation.navigate('Pricing')}
+          >
+            <Text style={styles.pricingButtonText}>{t.editPricing}</Text>
+            <Text style={styles.chevron}>{'>'}</Text>
+          </TouchableOpacity>
+
+          {/* Pending Users Header */}
+          {pendingUsers.length > 0 && (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {t.pendingApproval} ({pendingUsers.length})
+              </Text>
+            </View>
+          )}
+        </>
       }
       renderItem={({ item }) =>
         renderUser({ item, isPending: !item.is_active })
@@ -208,6 +271,66 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
     fontSize: fontSize.sm,
+  },
+  pricingButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  pricingButtonText: {
+    color: colors.textPrimary,
+    fontSize: fontSize.xl,
+    fontWeight: '600',
+  },
+  chevron: {
+    color: colors.textTertiary,
+    fontSize: fontSize.xl,
+  },
+  codeSection: {
+    margin: spacing.lg,
+    padding: spacing.lg,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.accent,
+  },
+  codeSectionTitle: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
+    fontWeight: 'bold',
+    marginBottom: spacing.md,
+  },
+  codeDisplay: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  codeText: {
+    color: colors.textPrimary,
+    fontSize: fontSize.title,
+    fontWeight: 'bold',
+    letterSpacing: 8,
+  },
+  codeHint: {
+    color: colors.warning,
+    fontSize: fontSize.sm,
+    textAlign: 'center',
+  },
+  generateButton: {
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.sm,
+  },
+  generateButtonText: {
+    color: colors.background,
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
   },
   empty: {
     padding: spacing.xxxl,

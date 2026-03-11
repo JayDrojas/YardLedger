@@ -42,3 +42,24 @@ export async function deactivateMetal(metalId: string) {
     .eq('id', metalId);
   if (error) throw error;
 }
+
+export async function fetchMetalCategories() {
+  const { data, error } = await supabase
+    .from('metal_categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order');
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchMetalsByCategory(categoryId: string) {
+  const { data, error } = await supabase
+    .from('metals')
+    .select('*')
+    .eq('is_active', true)
+    .eq('category_id', categoryId)
+    .order('name');
+  if (error) throw error;
+  return data;
+}

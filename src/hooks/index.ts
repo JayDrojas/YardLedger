@@ -1,4 +1,5 @@
 export { useMetals } from './useMetals';
+export { useMetalCategories } from './useMetalCategories';
 export { useReceipts } from './useReceipts';
 export { useInventory } from './useInventory';
 export { useSales } from './useSales';

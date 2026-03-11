@@ -18,11 +18,20 @@ export interface LineItemInput {
   total: number;
 }
 
+export interface MetalCategory {
+  id: string;
+  name: string;
+  image_url: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
 export interface Metal {
   id: string;
   name: string;
   price_per_lb: number;
   is_active: boolean;
+  category_id: string | null;
 }
 
 export interface UserProfile {

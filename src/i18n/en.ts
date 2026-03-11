@@ -89,10 +89,52 @@ export default {
   invalidCredentials: 'Invalid credentials',
   verificationFailed: 'Verification failed',
 
+  // Signature
+  customerSignature: 'Customer Signature',
+  clear: 'Clear',
+  signatureRequired: 'Customer signature is required',
+
+  // Receipt Detail
+  receiptDetail: 'Receipt Detail',
+  receipt: 'Receipt',
+  customer: 'Customer',
+  phone: 'Phone',
+  date: 'Date',
+  worker: 'Worker',
+  items: 'Items',
+  total: 'Total',
+  priceOverride: 'Price Override',
+  approvedBy: 'Approved by admin',
+  print: 'Print',
+  saveAndPrint: 'Save & Print',
+
+  // Add Line Item Modal
+  addLineItem: '+ Add Line Item',
+  selectCategory: 'Select Category',
+  selectMetal: 'Select Metal',
+  enterWeight: 'Enter Weight',
+  back: 'Back',
+  addItem: 'Add Item',
+
+  // Access Codes
+  generateCode: 'Generate Access Code',
+  accessCode: 'Access Code',
+  codeGenerated: 'Remember this code — it will not be shown again.',
+  generateNew: 'Generate New Code',
+
+  // Pricing
+  pricing: 'Pricing',
+  editPricing: 'Edit Pricing',
+  enterAccessCode: 'Enter Access Code',
+  invalidCode: 'Invalid or already used code',
+  priceUpdated: 'Price updated!',
+  perLb: '/lb',
+
   // Navigation
   tabBuy: 'Buy',
   tabInventory: 'Inventory',
   tabSales: 'Sales',
+  tabAdmin: 'Admin',
   tabUsers: 'Users',
   transactions: 'Transactions',
 } as const;

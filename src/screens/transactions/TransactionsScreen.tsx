@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
@@ -6,7 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useReceipts } from '../../hooks/useReceipts';
 import { useAppSelector, type RootState } from '../../store';
-import { RefreshableList } from '../../components';
+import { RefreshableList, PriceSheetModal } from '../../components';
 import { colors, spacing, fontSize } from '../../constants';
 
 type Props = NativeStackScreenProps<
@@ -21,6 +21,7 @@ export default function TransactionsScreen({ navigation }: Props) {
   const { receipts, loading, refresh } = useReceipts(
     isAdmin ? undefined : profile?.id
   );
+  const [showPrices, setShowPrices] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -38,7 +39,12 @@ export default function TransactionsScreen({ navigation }: Props) {
         emptyTitle={t.noTransactions}
         emptySubtitle={t.tapToRecordBuy}
         renderItem={({ item }) => (
-          <View style={styles.receiptCard}>
+          <TouchableOpacity
+            style={styles.receiptCard}
+            onPress={() =>
+              navigation.navigate('ReceiptDetail', { receiptId: item.id })
+            }
+          >
             <View style={styles.receiptHeader}>
               <Text style={styles.receiptNumber}>{item.receipt_number}</Text>
               <Text style={styles.receiptTotal}>
@@ -55,15 +61,26 @@ export default function TransactionsScreen({ navigation }: Props) {
                 {item.line_items.length === 1 ? 'item' : 'items'}
               </Text>
             )}
-          </View>
+          </TouchableOpacity>
         )}
       />
+      <TouchableOpacity
+        style={styles.pricesButton}
+        onPress={() => setShowPrices(true)}
+      >
+        <Text style={styles.pricesButtonText}>{t.pricing}</Text>
+      </TouchableOpacity>
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('NewTransaction')}
       >
         <Text style={styles.fabText}>{t.newBuy}</Text>
       </TouchableOpacity>
+
+      <PriceSheetModal
+        visible={showPrices}
+        onClose={() => setShowPrices(false)}
+      />
     </View>
   );
 }
@@ -109,6 +126,27 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
+  },
+  pricesButton: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    left: spacing.xl,
+    backgroundColor: colors.card,
+    borderRadius: 28,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pricesButtonText: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
   },
   fab: {
     position: 'absolute',

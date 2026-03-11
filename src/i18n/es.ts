@@ -90,10 +90,52 @@ export default {
   invalidCredentials: 'Credenciales inválidas',
   verificationFailed: 'Verificación fallida',
 
+  // Signature
+  customerSignature: 'Firma del Cliente',
+  clear: 'Limpiar',
+  signatureRequired: 'La firma del cliente es requerida',
+
+  // Receipt Detail
+  receiptDetail: 'Detalle del Recibo',
+  receipt: 'Recibo',
+  customer: 'Cliente',
+  phone: 'Teléfono',
+  date: 'Fecha',
+  worker: 'Trabajador',
+  items: 'Artículos',
+  total: 'Total',
+  priceOverride: 'Precio Modificado',
+  approvedBy: 'Aprobado por admin',
+  print: 'Imprimir',
+  saveAndPrint: 'Guardar e Imprimir',
+
+  // Add Line Item Modal
+  addLineItem: '+ Agregar Artículo',
+  selectCategory: 'Seleccionar Categoría',
+  selectMetal: 'Seleccionar Metal',
+  enterWeight: 'Ingresar Peso',
+  back: 'Volver',
+  addItem: 'Agregar',
+
+  // Access Codes
+  generateCode: 'Generar Código de Acceso',
+  accessCode: 'Código de Acceso',
+  codeGenerated: 'Recuerda este código — no se mostrará de nuevo.',
+  generateNew: 'Generar Nuevo Código',
+
+  // Pricing
+  pricing: 'Precios',
+  editPricing: 'Editar Precios',
+  enterAccessCode: 'Ingrese Código de Acceso',
+  invalidCode: 'Código inválido o ya utilizado',
+  priceUpdated: '¡Precio actualizado!',
+  perLb: '/lb',
+
   // Navigation
   tabBuy: 'Compras',
   tabInventory: 'Inventario',
   tabSales: 'Ventas',
+  tabAdmin: 'Admin',
   tabUsers: 'Usuarios',
   transactions: 'Transacciones',
 } as const;

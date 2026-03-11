@@ -6,7 +6,7 @@ interface CreateReceiptParams {
   customerPhone: string;
   type: 'buy' | 'sell';
   subtotal: number;
-  signatureUri?: string;
+  signatureUri?: string | null;
   workerId: string;
   notes?: string;
   lineItems: LineItemInput[];

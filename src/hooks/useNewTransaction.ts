@@ -1,65 +1,51 @@
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import { Alert } from 'react-native';
 import type { LineItemInput, Metal } from '../types';
-import { useMetals } from './useMetals';
+import type { SignaturePadHandle } from '../components/SignaturePad';
 import { useAppSelector, type RootState } from '../store';
 import { useT } from './useT';
 import { createReceipt } from '../services/receipts';
 import {
   calculateLineItemTotal,
   calculateReceiptTotal,
-  calculateCurrentPreview,
 } from '../utils/calculations';
 
-export function useNewTransaction() {
+export function useNewTransaction(
+  signaturePadRef?: RefObject<SignaturePadHandle | null>
+) {
   const { t } = useT();
-  const { metals, loading: metalsLoading } = useMetals();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const activeMetals = metals.filter((m) => m.is_active);
 
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [selectedMetal, setSelectedMetal] = useState<Metal | null>(null);
-  const [weight, setWeight] = useState('');
   const [lineItems, setLineItems] = useState<LineItemInput[]>([]);
+  const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   // Price override state
-  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
   const [overrideIndex, setOverrideIndex] = useState<number | null>(null);
   const [overridePrice, setOverridePrice] = useState('');
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   // Derived values
-  const currentTotal = calculateCurrentPreview(
-    weight,
-    selectedMetal?.price_per_lb ?? 0
-  );
   const receiptTotal = calculateReceiptTotal(lineItems);
 
-  const addLineItem = () => {
-    if (!selectedMetal) return;
-    const w = parseFloat(weight);
-    if (!w || w <= 0) {
-      Alert.alert(t.error, t.enterValidWeight);
-      return;
-    }
-
+  const addLineItem = (metal: Metal, weight: number) => {
     setLineItems((prev) => [
       ...prev,
       {
-        metalId: selectedMetal.id,
-        metalName: selectedMetal.name,
-        weight: w,
-        pricePerLb: selectedMetal.price_per_lb,
-        originalPricePerLb: selectedMetal.price_per_lb,
+        metalId: metal.id,
+        metalName: metal.name,
+        weight,
+        pricePerLb: metal.price_per_lb,
+        originalPricePerLb: metal.price_per_lb,
         isPriceOverride: false,
         overrideApprovedBy: null,
-        total: calculateLineItemTotal(w, selectedMetal.price_per_lb),
+        total: calculateLineItemTotal(weight, metal.price_per_lb),
       },
     ]);
-    setWeight('');
   };
 
   const removeLineItem = (index: number) => {
@@ -83,10 +69,10 @@ export function useNewTransaction() {
       return;
     }
     setOverrideIndex(index);
-    setShowAdminModal(true);
+    setShowCodeModal(true);
   };
 
-  const approveOverride = (adminUserId: string) => {
+  const approveOverride = () => {
     if (overrideIndex === null) return;
     const newPrice = parseFloat(overridePrice);
 
@@ -97,21 +83,21 @@ export function useNewTransaction() {
               ...item,
               pricePerLb: newPrice,
               isPriceOverride: true,
-              overrideApprovedBy: adminUserId,
+              overrideApprovedBy: 'access_code',
               total: calculateLineItemTotal(item.weight, newPrice),
             }
           : item
       )
     );
 
-    setShowAdminModal(false);
+    setShowCodeModal(false);
     setOverrideIndex(null);
     setEditingIndex(null);
     setOverridePrice('');
   };
 
   const cancelOverride = () => {
-    setShowAdminModal(false);
+    setShowCodeModal(false);
     setOverrideIndex(null);
   };
 
@@ -120,7 +106,7 @@ export function useNewTransaction() {
     setOverridePrice('');
   };
 
-  const saveReceipt = async (onSuccess: () => void) => {
+  const saveReceipt = async (onSuccess: (receiptId: string) => void) => {
     if (!customerName) {
       Alert.alert(t.error, t.enterCustomerName);
       return;
@@ -134,19 +120,30 @@ export function useNewTransaction() {
       return;
     }
 
+    // Read signature imperatively to avoid async race condition
+    let signatureData = signature;
+    if (signaturePadRef?.current) {
+      signatureData = await signaturePadRef.current.readSignature();
+    }
+    if (!signatureData) {
+      Alert.alert(t.error, t.signatureRequired);
+      return;
+    }
+
     setSaving(true);
     try {
-      await createReceipt({
+      const receipt = await createReceipt({
         customerName,
         customerPhone,
         type: 'buy',
         subtotal: receiptTotal,
+        signatureUri: signatureData,
         workerId: profile.id,
         notes: '',
         lineItems,
       });
       Alert.alert(t.success, t.receiptSaved, [
-        { text: t.ok, onPress: onSuccess },
+        { text: t.ok, onPress: () => onSuccess(receipt.id) },
       ]);
     } catch (err) {
       console.error('[saveReceipt] Error:', err);
@@ -158,28 +155,23 @@ export function useNewTransaction() {
 
   return {
     // Data
-    activeMetals,
-    metalsLoading,
     lineItems,
     customerName,
     customerPhone,
-    selectedMetal,
-    weight,
-    currentTotal,
     receiptTotal,
+    signature,
     saving,
 
     // Override UI state
-    showAdminModal,
+    showCodeModal,
     overridePrice,
     editingIndex,
 
     // Setters
     setCustomerName,
     setCustomerPhone,
-    setSelectedMetal,
-    setWeight,
     setOverridePrice,
+    setSignature,
 
     // Actions
     addLineItem,
