@@ -1,0 +1,99 @@
+export default {
+  // Common
+  error: 'Error',
+  success: 'Exitoso',
+  cancel: 'Cancelar',
+  ok: 'OK',
+  save: 'Guardar',
+  delete: 'Eliminar',
+  loading: 'Cargando...',
+
+  // Auth - Login
+  appName: 'YardLedger',
+  appTagline: 'Gestión de Metales de Desecho',
+  email: 'Correo Electrónico',
+  password: 'Contraseña',
+  signIn: 'Iniciar Sesión',
+  signingIn: 'Iniciando Sesión...',
+  fillAllFields: 'Por favor complete todos los campos',
+  loginFailed: 'Inicio de Sesión Fallido',
+  noAccountRegister: '¿No tienes cuenta? Regístrate',
+
+  // Auth - Register
+  createAccount: 'Crear Cuenta',
+  confirmPassword: 'Confirmar Contraseña',
+  register: 'Registrarse',
+  creatingAccount: 'Creando Cuenta...',
+  passwordsMismatch: 'Las contraseñas no coinciden',
+  accountCreated: '¡Cuenta creada! Revisa tu correo para la verificación.',
+  registrationFailed: 'Registro Fallido',
+  alreadyHaveAccount: '¿Ya tienes cuenta? Inicia Sesión',
+
+  // Auth - Pending
+  accountPending: 'Cuenta Pendiente',
+  pendingMessage:
+    'Tu cuenta está esperando la aprobación del administrador. Podrás acceder a YardLedger una vez que un administrador active tu cuenta.',
+  checkStatus: 'Verificar Estado',
+  signOut: 'Cerrar Sesión',
+
+  // Transactions
+  customerInfo: 'Información del Cliente',
+  customerName: 'Nombre del Cliente',
+  phoneNumber: 'Número de Teléfono',
+  addMetals: 'Agregar Metales',
+  weightLbs: 'Peso (lbs)',
+  add: '+ Agregar',
+  lineItems: 'Artículos',
+  tapPriceToOverride: 'Toca el precio para modificar',
+  override: 'MODIFICADO',
+  pricePerLb: '$/lb:',
+  receiptTotal: 'Total del Recibo:',
+  saveReceipt: 'Guardar Recibo',
+  enterValidWeight: 'Ingrese un peso válido',
+  enterValidPrice: 'Ingrese un precio válido',
+  enterCustomerName: 'Por favor ingrese el nombre del cliente',
+  addAtLeastOneItem: 'Agregue al menos un artículo',
+  receiptSaved: '¡Recibo guardado!',
+  noTransactions: 'Sin transacciones',
+  tapToRecordBuy: 'Toca el botón para registrar una compra',
+  newBuy: '+ Nueva Compra',
+
+  // Inventory
+  noInventory: 'Sin inventario',
+  inventoryAutoUpdate: 'Las compras actualizarán el inventario automáticamente',
+
+  // Sales
+  noSales: 'Sin ventas',
+  recordSalesProfit: 'Registra ventas y calcula márgenes de ganancia',
+
+  // Admin
+  pendingApproval: 'Aprobación Pendiente',
+  noUsersFound: 'No se encontraron usuarios',
+  approve: 'Aprobar',
+  admin: 'Admin',
+  deactivate: 'Desactivar',
+  deactivateUser: 'Desactivar Usuario',
+  areYouSure: '¿Estás seguro?',
+  promoteToAdmin: 'Promover a Administrador',
+  promoteAdminMessage: 'Este usuario tendrá acceso completo de administrador.',
+  promote: 'Promover',
+
+  // Admin Pin Modal
+  adminAuthorization: 'Autorización de Administrador',
+  priceOverrideRequiresAdmin:
+    'La modificación de precio requiere aprobación del administrador',
+  adminEmail: 'Correo del Administrador',
+  adminPassword: 'Contraseña del Administrador',
+  authorize: 'Autorizar',
+  verifying: 'Verificando...',
+  enterAdminCredentials: 'Ingrese credenciales de administrador',
+  invalidCredentials: 'Credenciales inválidas',
+  verificationFailed: 'Verificación fallida',
+
+  // Navigation
+  tabBuy: 'Compras',
+  tabInventory: 'Inventario',
+  tabSales: 'Ventas',
+  tabUsers: 'Usuarios',
+  transactions: 'Transacciones',
+} as const;
