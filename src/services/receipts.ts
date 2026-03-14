@@ -37,6 +37,8 @@ export async function createReceipt(params: CreateReceiptParams) {
     metal_id: item.metalId,
     metal_name: item.metalName,
     weight: item.weight,
+    gross_weight: item.grossWeight ?? null,
+    tare_weight: item.tareWeight ?? null,
     price_per_lb: item.pricePerLb,
     original_price_per_lb: item.originalPricePerLb,
     is_price_override: item.isPriceOverride,

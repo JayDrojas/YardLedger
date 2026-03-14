@@ -6,10 +6,11 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   AccessCodeModal,
   SignaturePad,
@@ -25,12 +26,51 @@ type Props = NativeStackScreenProps<
   'NewTransaction'
 >;
 
+interface SavedReceipt {
+  id: string;
+  total: number;
+  customerName: string;
+  itemCount: number;
+}
+
 export default function NewTransactionScreen({ navigation }: Props) {
   const { t } = useT();
   const signaturePadRef = useRef<SignaturePadHandle>(null);
   const tx = useNewTransaction(signaturePadRef);
   const [printAfterSave, setPrintAfterSave] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [savedReceipt, setSavedReceipt] = useState<SavedReceipt | null>(null);
+
+  const handleSaveSuccess = useCallback(
+    (receiptId: string) => {
+      setSavedReceipt({
+        id: receiptId,
+        total: tx.receiptTotal,
+        customerName: tx.customerName,
+        itemCount: tx.lineItems.length,
+      });
+    },
+    [tx.receiptTotal, tx.customerName, tx.lineItems.length]
+  );
+
+  const handleNewTicket = useCallback(
+    (keepCustomer: boolean) => {
+      tx.resetForm(keepCustomer);
+      setSavedReceipt(null);
+    },
+    [tx]
+  );
+
+  const handleViewReceipt = useCallback(() => {
+    if (!savedReceipt) return;
+    const receiptId = savedReceipt.id;
+    setSavedReceipt(null);
+    tx.resetForm();
+    navigation.replace('ReceiptDetail', {
+      receiptId,
+      printOnLoad: printAfterSave,
+    });
+  }, [savedReceipt, navigation, printAfterSave, tx]);
 
   return (
     <>
@@ -155,9 +195,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
             ]}
             onPress={() => {
               setPrintAfterSave(false);
-              tx.saveReceipt((receiptId) =>
-                navigation.replace('ReceiptDetail', { receiptId })
-              );
+              tx.saveReceipt(handleSaveSuccess);
             }}
             disabled={tx.lineItems.length === 0 || tx.saving}
           >
@@ -177,12 +215,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
             ]}
             onPress={() => {
               setPrintAfterSave(true);
-              tx.saveReceipt((receiptId) =>
-                navigation.replace('ReceiptDetail', {
-                  receiptId,
-                  printOnLoad: true,
-                })
-              );
+              tx.saveReceipt(handleSaveSuccess);
             }}
             disabled={tx.lineItems.length === 0 || tx.saving}
           >
@@ -195,6 +228,57 @@ export default function NewTransactionScreen({ navigation }: Props) {
         </View>
       </ScrollView>
 
+      {/* Quick-mode success modal */}
+      <Modal
+        visible={!!savedReceipt}
+        transparent
+        animationType="fade"
+        onRequestClose={handleViewReceipt}
+      >
+        <View style={styles.successOverlay}>
+          <View style={styles.successModal}>
+            <View style={styles.successIconCircle}>
+              <Text style={styles.successIcon}>✓</Text>
+            </View>
+            <Text style={styles.successTitle}>{t.receiptSaved}</Text>
+            {savedReceipt && (
+              <View style={styles.successSummary}>
+                <Text style={styles.successCustomer}>
+                  {savedReceipt.customerName}
+                </Text>
+                <Text style={styles.successDetail}>
+                  {savedReceipt.itemCount}{' '}
+                  {savedReceipt.itemCount === 1 ? 'item' : t.items} — $
+                  {savedReceipt.total.toFixed(2)}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={styles.quickModeButton}
+              onPress={() => handleNewTicket(false)}
+            >
+              <Text style={styles.quickModeButtonText}>{t.newTicket}</Text>
+            </TouchableOpacity>
+            {savedReceipt && (
+              <TouchableOpacity
+                style={styles.quickModeSameCustomer}
+                onPress={() => handleNewTicket(true)}
+              >
+                <Text style={styles.quickModeSameCustomerText}>
+                  {t.newTicketSameCustomer}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.viewReceiptButton}
+              onPress={handleViewReceipt}
+            >
+              <Text style={styles.viewReceiptButtonText}>{t.viewReceipt}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <AccessCodeModal
         visible={tx.showCodeModal}
         onSuccess={tx.approveOverride}
@@ -203,8 +287,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
       <AddLineItemModal
         visible={showAddModal}
-        onAdd={(metal, weight) => {
-          tx.addLineItem(metal, weight);
+        onAdd={(metal, weight, weightData) => {
+          tx.addLineItem(metal, weight, weightData);
           setShowAddModal(false);
         }}
         onClose={() => setShowAddModal(false)}
@@ -414,5 +498,93 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: fontSize.xl,
     fontWeight: '700',
+  },
+  successOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  successModal: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
+    width: '100%',
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  successIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.success,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  successIcon: {
+    color: '#ffffff',
+    fontSize: 32,
+    fontWeight: '700',
+  },
+  successTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+    marginBottom: spacing.md,
+  },
+  successSummary: {
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  successCustomer: {
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  successDetail: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    marginTop: spacing.xs,
+  },
+  quickModeButton: {
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickModeButtonText: {
+    color: colors.background,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+  },
+  quickModeSameCustomer: {
+    backgroundColor: 'transparent',
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    padding: spacing.md,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  quickModeSameCustomerText: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  viewReceiptButton: {
+    padding: spacing.md,
+    width: '100%',
+    alignItems: 'center',
+  },
+  viewReceiptButtonText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
   },
 });

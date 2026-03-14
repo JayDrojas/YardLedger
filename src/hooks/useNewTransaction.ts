@@ -32,13 +32,19 @@ export function useNewTransaction(
   // Derived values
   const receiptTotal = calculateReceiptTotal(lineItems);
 
-  const addLineItem = (metal: Metal, weight: number) => {
+  const addLineItem = (
+    metal: Metal,
+    weight: number,
+    weightData?: { net: number; gross?: number; tare?: number }
+  ) => {
     setLineItems((prev) => [
       ...prev,
       {
         metalId: metal.id,
         metalName: metal.name,
         weight,
+        grossWeight: weightData?.gross ?? null,
+        tareWeight: weightData?.tare ?? null,
         pricePerLb: metal.price_per_lb,
         originalPricePerLb: metal.price_per_lb,
         isPriceOverride: false,
@@ -106,6 +112,20 @@ export function useNewTransaction(
     setOverridePrice('');
   };
 
+  const resetForm = (keepCustomer = false) => {
+    if (!keepCustomer) {
+      setCustomerName('');
+      setCustomerPhone('');
+    }
+    setLineItems([]);
+    setSignature(null);
+    setSaving(false);
+    setShowCodeModal(false);
+    setOverrideIndex(null);
+    setOverridePrice('');
+    setEditingIndex(null);
+  };
+
   const saveReceipt = async (onSuccess: (receiptId: string) => void) => {
     if (!customerName) {
       Alert.alert(t.error, t.enterCustomerName);
@@ -142,9 +162,7 @@ export function useNewTransaction(
         notes: '',
         lineItems,
       });
-      Alert.alert(t.success, t.receiptSaved, [
-        { text: t.ok, onPress: () => onSuccess(receipt.id) },
-      ]);
+      onSuccess(receipt.id);
     } catch (err) {
       console.error('[saveReceipt] Error:', err);
       Alert.alert(t.error, (err as Error).message);
@@ -182,5 +200,6 @@ export function useNewTransaction(
     cancelOverride,
     cancelEdit,
     saveReceipt,
+    resetForm,
   };
 }

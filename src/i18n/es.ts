@@ -132,6 +132,14 @@ export default {
   enterWeight: 'Ingresar Peso',
   back: 'Volver',
   addItem: 'Agregar',
+  newTicket: 'Nuevo Ticket',
+  newTicketSameCustomer: 'Nuevo Ticket — Mismo Cliente',
+  viewReceipt: 'Ver Recibo',
+  netWeight: 'Peso Neto',
+  grossTare: 'Bruto / Tara',
+  grossWeightLabel: 'Bruto (lbs)',
+  tareWeightLabel: 'Tara (lbs)',
+  netWeightResult: 'Neto:',
 
   // Access Codes
   generateCode: 'Generar Código de Acceso',

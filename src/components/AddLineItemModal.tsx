@@ -18,10 +18,17 @@ import { useT } from '../hooks/useT';
 import { colors, spacing, fontSize, borderRadius } from '../constants';
 
 type Step = 'category' | 'metal' | 'weight';
+type WeightMode = 'net' | 'tare';
+
+interface WeightData {
+  net: number;
+  gross?: number;
+  tare?: number;
+}
 
 interface AddLineItemModalProps {
   visible: boolean;
-  onAdd: (metal: Metal, weight: number) => void;
+  onAdd: (metal: Metal, weight: number, weightData?: WeightData) => void;
   onClose: () => void;
 }
 
@@ -40,6 +47,9 @@ export default function AddLineItemModal({
     useState<MetalCategory | null>(null);
   const [selectedMetal, setSelectedMetal] = useState<Metal | null>(null);
   const [weight, setWeight] = useState('');
+  const [weightMode, setWeightMode] = useState<WeightMode>('net');
+  const [grossWeight, setGrossWeight] = useState('');
+  const [tareWeight, setTareWeight] = useState('');
 
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
@@ -84,11 +94,23 @@ export default function AddLineItemModal({
     setStep('weight');
   };
 
+  const netWeight =
+    weightMode === 'net'
+      ? parseFloat(weight) || 0
+      : (parseFloat(grossWeight) || 0) - (parseFloat(tareWeight) || 0);
+
   const handleAdd = () => {
     if (!selectedMetal) return;
-    const w = parseFloat(weight);
-    if (!w || w <= 0) return;
-    onAdd(selectedMetal, w);
+    if (netWeight <= 0) return;
+    const weightData: WeightData | undefined =
+      weightMode === 'tare'
+        ? {
+            net: netWeight,
+            gross: parseFloat(grossWeight) || 0,
+            tare: parseFloat(tareWeight) || 0,
+          }
+        : undefined;
+    onAdd(selectedMetal, netWeight, weightData);
     handleReset();
   };
 
@@ -98,6 +120,9 @@ export default function AddLineItemModal({
     setSelectedMetal(null);
     setMetals([]);
     setWeight('');
+    setWeightMode('net');
+    setGrossWeight('');
+    setTareWeight('');
   };
 
   const handleClose = () => {
@@ -118,6 +143,9 @@ export default function AddLineItemModal({
         setSelectedMetal(null);
       }
       setWeight('');
+      setGrossWeight('');
+      setTareWeight('');
+      setWeightMode('net');
     } else if (step === 'metal') {
       setStep('category');
       setSelectedCategory(null);
@@ -243,29 +271,107 @@ export default function AddLineItemModal({
             <Text style={styles.metalInfo}>
               {selectedMetal.name} — ${selectedMetal.price_per_lb}/lb
             </Text>
-            <TextInput
-              style={styles.weightInput}
-              placeholder={t.weightLbs}
-              placeholderTextColor={colors.textTertiary}
-              value={weight}
-              onChangeText={setWeight}
-              keyboardType="decimal-pad"
-              autoFocus
-            />
-            {weight && parseFloat(weight) > 0 ? (
+
+            {/* Weight mode toggle */}
+            <View style={styles.weightModeToggle}>
+              <TouchableOpacity
+                style={[
+                  styles.weightModeButton,
+                  weightMode === 'net' && styles.weightModeButtonActive,
+                ]}
+                onPress={() => setWeightMode('net')}
+              >
+                <Text
+                  style={[
+                    styles.weightModeText,
+                    weightMode === 'net' && styles.weightModeTextActive,
+                  ]}
+                >
+                  {t.netWeight}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.weightModeButton,
+                  weightMode === 'tare' && styles.weightModeButtonActive,
+                ]}
+                onPress={() => setWeightMode('tare')}
+              >
+                <Text
+                  style={[
+                    styles.weightModeText,
+                    weightMode === 'tare' && styles.weightModeTextActive,
+                  ]}
+                >
+                  {t.grossTare}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {weightMode === 'net' ? (
+              <TextInput
+                style={styles.weightInput}
+                placeholder={t.weightLbs}
+                placeholderTextColor={colors.textTertiary}
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+            ) : (
+              <>
+                <View style={styles.tareRow}>
+                  <View style={styles.tareInputGroup}>
+                    <Text style={styles.tareLabel}>{t.grossWeightLabel}</Text>
+                    <TextInput
+                      style={styles.weightInput}
+                      placeholder="0.00"
+                      placeholderTextColor={colors.textTertiary}
+                      value={grossWeight}
+                      onChangeText={setGrossWeight}
+                      keyboardType="decimal-pad"
+                      autoFocus
+                    />
+                  </View>
+                  <Text style={styles.tareMinus}>−</Text>
+                  <View style={styles.tareInputGroup}>
+                    <Text style={styles.tareLabel}>{t.tareWeightLabel}</Text>
+                    <TextInput
+                      style={styles.weightInput}
+                      placeholder="0.00"
+                      placeholderTextColor={colors.textTertiary}
+                      value={tareWeight}
+                      onChangeText={setTareWeight}
+                      keyboardType="decimal-pad"
+                    />
+                  </View>
+                </View>
+                {netWeight > 0 && (
+                  <View style={styles.netResult}>
+                    <Text style={styles.netResultLabel}>
+                      {t.netWeightResult}
+                    </Text>
+                    <Text style={styles.netResultValue}>
+                      {netWeight.toFixed(2)} lbs
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+
+            {netWeight > 0 ? (
               <Text style={styles.preview}>
-                {weight} lbs = $
-                {(parseFloat(weight) * selectedMetal.price_per_lb).toFixed(2)}
+                {netWeight.toFixed(2)} lbs = $
+                {(netWeight * selectedMetal.price_per_lb).toFixed(2)}
               </Text>
             ) : null}
             <TouchableOpacity
               style={[
                 styles.addButton,
-                (!weight || parseFloat(weight) <= 0) &&
-                  styles.addButtonDisabled,
+                netWeight <= 0 && styles.addButtonDisabled,
               ]}
               onPress={handleAdd}
-              disabled={!weight || parseFloat(weight) <= 0}
+              disabled={netWeight <= 0}
             >
               <Text style={styles.addButtonText}>{t.addItem}</Text>
             </TouchableOpacity>
@@ -368,6 +474,72 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  weightModeToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  weightModeButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    borderRadius: borderRadius.md - 2,
+  },
+  weightModeButtonActive: {
+    backgroundColor: colors.accent,
+  },
+  weightModeText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  weightModeTextActive: {
+    color: colors.background,
+  },
+  tareRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: spacing.sm,
+  },
+  tareInputGroup: {
+    flex: 1,
+  },
+  tareLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginBottom: spacing.xs,
+    textAlign: 'center',
+  },
+  tareMinus: {
+    color: colors.textTertiary,
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
+    paddingBottom: spacing.md,
+  },
+  netResult: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderLeftWidth: 3,
+  },
+  netResultLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.lg,
+  },
+  netResultValue: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
   },
   weightInput: {
     backgroundColor: colors.inputBackground,

@@ -114,6 +114,8 @@ export default function ReceiptDetailScreen({ route }: Props) {
                 id: string;
                 metal_name: string;
                 weight: number;
+                gross_weight?: number | null;
+                tare_weight?: number | null;
                 price_per_lb: number;
                 total: number;
                 is_price_override: boolean;
@@ -133,10 +135,25 @@ export default function ReceiptDetailScreen({ route }: Props) {
                       </View>
                     )}
                   </View>
-                  <Text style={styles.lineItemDetail}>
-                    {Number(item.weight).toFixed(2)} lbs @ $
-                    {Number(item.price_per_lb).toFixed(4)}/lb
-                  </Text>
+                  {item.gross_weight != null && item.tare_weight != null ? (
+                    <>
+                      <Text style={styles.tareDetail}>
+                        {t.grossWeightLabel}:{' '}
+                        {Number(item.gross_weight).toFixed(2)} —{' '}
+                        {t.tareWeightLabel}:{' '}
+                        {Number(item.tare_weight).toFixed(2)}
+                      </Text>
+                      <Text style={styles.lineItemDetail}>
+                        {t.netWeightResult} {Number(item.weight).toFixed(2)} lbs
+                        @ ${Number(item.price_per_lb).toFixed(4)}/lb
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.lineItemDetail}>
+                      {Number(item.weight).toFixed(2)} lbs @ $
+                      {Number(item.price_per_lb).toFixed(4)}/lb
+                    </Text>
+                  )}
                   {item.is_price_override && item.original_price_per_lb && (
                     <Text style={styles.originalPrice}>
                       was ${Number(item.original_price_per_lb).toFixed(4)}/lb
@@ -277,6 +294,11 @@ const styles = StyleSheet.create({
   lineItemDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  tareDetail: {
+    color: colors.textTertiary,
+    fontSize: fontSize.xs,
     marginTop: spacing.xs,
   },
   originalPrice: {

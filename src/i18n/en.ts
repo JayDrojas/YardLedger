@@ -131,6 +131,14 @@ export default {
   enterWeight: 'Enter Weight',
   back: 'Back',
   addItem: 'Add Item',
+  newTicket: 'New Ticket',
+  newTicketSameCustomer: 'New Ticket — Same Customer',
+  viewReceipt: 'View Receipt',
+  netWeight: 'Net Weight',
+  grossTare: 'Gross / Tare',
+  grossWeightLabel: 'Gross (lbs)',
+  tareWeightLabel: 'Tare (lbs)',
+  netWeightResult: 'Net:',
 
   // Access Codes
   generateCode: 'Generate Access Code',

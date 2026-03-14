@@ -11,6 +11,8 @@ export interface LineItemInput {
   metalId: string;
   metalName: string;
   weight: number;
+  grossWeight?: number | null;
+  tareWeight?: number | null;
   pricePerLb: number;
   originalPricePerLb: number;
   isPriceOverride: boolean;
