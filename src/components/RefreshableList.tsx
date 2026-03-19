@@ -1,7 +1,9 @@
+import { useCallback } from 'react';
 import { FlatList, ActivityIndicator, RefreshControl } from 'react-native';
-import type { FlatListProps } from 'react-native';
+import type { FlatListProps, ListRenderItem } from 'react-native';
 import { colors } from '../constants';
 import EmptyState from './EmptyState';
+import AnimatedListItem from './AnimatedListItem';
 
 interface RefreshableListProps<T> extends Omit<FlatListProps<T>, 'data'> {
   data: T[];
@@ -18,11 +20,22 @@ export default function RefreshableList<T>({
   emptyTitle,
   emptySubtitle,
   ListEmptyComponent,
+  renderItem,
   ...props
 }: RefreshableListProps<T>) {
+  const animatedRenderItem: ListRenderItem<T> = useCallback(
+    (info) => (
+      <AnimatedListItem index={info.index}>
+        {renderItem?.(info)}
+      </AnimatedListItem>
+    ),
+    [renderItem]
+  );
+
   return (
     <FlatList
       data={data}
+      renderItem={animatedRenderItem}
       refreshControl={
         <RefreshControl
           refreshing={loading}

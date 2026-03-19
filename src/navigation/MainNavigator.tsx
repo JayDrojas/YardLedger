@@ -31,7 +31,8 @@ const stackScreenOptions = {
     fontSize: fontSize.xl,
   },
   headerShadowVisible: false,
-} as const;
+  animation: 'slide_from_right' as const,
+};
 
 export type MainTabParamList = {
   TransactionsTab: undefined;
@@ -96,7 +97,7 @@ function TransactionsNavigator() {
       <TransactionsStack.Screen
         name="NewTransaction"
         component={NewTransactionScreen}
-        options={{ title: t.newBuy }}
+        options={{ title: t.newBuy, animation: 'slide_from_bottom' }}
       />
       <TransactionsStack.Screen
         name="ReceiptDetail"
@@ -119,7 +120,7 @@ function SalesNavigator() {
       <SalesStack.Screen
         name="NewSale"
         component={NewSaleScreen}
-        options={{ title: t.newSale }}
+        options={{ title: t.newSale, animation: 'slide_from_bottom' }}
       />
     </SalesStack.Navigator>
   );

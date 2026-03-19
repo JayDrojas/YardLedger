@@ -16,6 +16,7 @@ export default function AuthNavigator() {
         headerStyle: { backgroundColor: '#1a1a2e' },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
+        animation: 'fade',
       }}
     >
       <Stack.Screen

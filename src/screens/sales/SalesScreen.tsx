@@ -26,7 +26,7 @@ export default function SalesScreen({ navigation }: Props) {
   const { t } = useT();
   const [preset, setPreset] = useState<DatePreset>('today');
   const { start, end } = getDateRange(preset);
-  const { sales, loading, refresh } = useSales(start, end);
+  const { sales, loading, error, refresh } = useSales(start, end);
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
@@ -61,6 +61,11 @@ export default function SalesScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <DateRangeSelector selected={preset} onSelect={setPreset} />
+      {error && (
+        <View style={styles.errorBar}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
       <View style={styles.searchRow}>
         <TextInput
           style={styles.searchInput}
@@ -339,6 +344,18 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
+  },
+  errorBar: {
+    backgroundColor: colors.danger,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: fontSize.sm,
+    fontWeight: '600',
   },
   fab: {
     position: 'absolute',
