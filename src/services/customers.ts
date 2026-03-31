@@ -11,6 +11,8 @@ export interface Customer {
   address: string;
   dob: string | null;
   notes: string;
+  is_flagged: boolean;
+  flag_reason: string;
   created_at: string;
 }
 
@@ -102,6 +104,8 @@ export async function updateCustomer(
     address?: string;
     dob?: string | null;
     notes?: string;
+    is_flagged?: boolean;
+    flag_reason?: string;
   }
 ): Promise<Customer> {
   const { data, error } = await supabase

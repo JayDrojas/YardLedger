@@ -96,6 +96,11 @@ export default function CustomerListScreen({ navigation }: Props) {
               ) : null}
             </View>
             <View style={styles.cardRight}>
+              {item.is_flagged && (
+                <View style={styles.flagBadge}>
+                  <Text style={styles.flagBadgeText}>{t.flagged}</Text>
+                </View>
+              )}
               {item.dl_photo_uri ? (
                 <View style={styles.idBadge}>
                   <Text style={styles.idBadgeText}>{t.idOnFile}</Text>
@@ -202,6 +207,18 @@ const styles = StyleSheet.create({
   },
   noIdBadgeText: {
     color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  flagBadge: {
+    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginBottom: spacing.xs,
+  },
+  flagBadgeText: {
+    color: colors.danger,
     fontSize: fontSize.xs,
     fontWeight: '700',
   },

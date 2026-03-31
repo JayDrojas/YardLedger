@@ -75,6 +75,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
   const handleSelectCustomer = useCallback(
     (customer: Customer) => {
+      if (customer.is_flagged) {
+        Alert.alert(t.flagWarning, customer.flag_reason || t.flagCustomer, [
+          { text: t.ok },
+        ]);
+      }
       tx.setCustomerName(customer.name);
       tx.setCustomerPhone(customer.phone ?? '');
       setSelectedCustomerId(customer.id);
@@ -83,7 +88,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
       setShowCustomers(false);
       setCustomers([]);
     },
-    [tx]
+    [tx, t.flagWarning, t.flagCustomer, t.ok]
   );
 
   const handleSaveSuccess = useCallback(

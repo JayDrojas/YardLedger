@@ -18,6 +18,9 @@ import {
   createMetal,
   updateMetal,
   deactivateMetal,
+  logPriceChange,
+  fetchPriceHistory,
+  type PriceHistoryEntry,
 } from '../../services/metals';
 import { useAppSelector, type RootState } from '../../store';
 import { useT } from '../../hooks/useT';
@@ -46,6 +49,7 @@ export default function PricingScreen() {
   const [isRestricted, setIsRestricted] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [saving, setSaving] = useState(false);
+  const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[]>([]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -72,12 +76,18 @@ export default function PricingScreen() {
   );
 
   // --- Edit existing metal ---
-  const openEdit = (metal: Metal) => {
+  const openEdit = async (metal: Metal) => {
     setEditingMetal(metal);
     setNewPrice(metal.price_per_lb.toString());
     setNewName(metal.name);
     setIsRestricted(metal.is_restricted);
     setModalMode('edit');
+    try {
+      const history = await fetchPriceHistory(metal.id);
+      setPriceHistory(history);
+    } catch {
+      setPriceHistory([]);
+    }
   };
 
   // --- Add new metal ---
@@ -95,6 +105,7 @@ export default function PricingScreen() {
     setNewName('');
     setIsRestricted(false);
     setSelectedCategoryId('');
+    setPriceHistory([]);
   };
 
   const handleSaveEdit = async () => {
@@ -132,6 +143,14 @@ export default function PricingScreen() {
       if (priceChanged) updates.price_per_lb = price;
       if (restrictedChanged) updates.is_restricted = isRestricted;
       await updateMetal(editingMetal.id, updates, profile.id);
+      if (priceChanged) {
+        await logPriceChange(
+          editingMetal.id,
+          editingMetal.price_per_lb,
+          price,
+          profile.id
+        );
+      }
       Alert.alert(t.success, t.metalUpdated);
       closeModal();
       loadData();
@@ -302,6 +321,23 @@ export default function PricingScreen() {
                   {t.restrictedMaterial}
                 </Text>
               </TouchableOpacity>
+
+              {priceHistory.length > 0 && (
+                <View style={styles.historySection}>
+                  <Text style={styles.historyTitle}>{t.priceHistory}</Text>
+                  {priceHistory.map((h) => (
+                    <View key={h.id} style={styles.historyRow}>
+                      <Text style={styles.historyDate}>
+                        {new Date(h.created_at).toLocaleDateString()}
+                      </Text>
+                      <Text style={styles.historyChange}>
+                        ${Number(h.old_price).toFixed(4)} → $
+                        {Number(h.new_price).toFixed(4)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
 
               <TouchableOpacity
                 style={styles.removeButton}
@@ -599,5 +635,30 @@ const styles = StyleSheet.create({
   restrictedToggleText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+  },
+  historySection: {
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  historyTitle: {
+    color: colors.textPrimary,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+  },
+  historyDate: {
+    color: colors.textTertiary,
+    fontSize: fontSize.sm,
+  },
+  historyChange: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
   },
 });

@@ -15,8 +15,10 @@ import InventoryValuationScreen from '../screens/reports/InventoryValuationScree
 import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
 import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
+import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import CustomerListScreen from '../screens/customers/CustomerListScreen';
 import CustomerProfileScreen from '../screens/customers/CustomerProfileScreen';
+import MarketPricesScreen from '../screens/admin/MarketPricesScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
@@ -40,6 +42,7 @@ const stackScreenOptions = {
 };
 
 export type MainTabParamList = {
+  Dashboard: undefined;
   TransactionsTab: undefined;
   CustomersTab: undefined;
   Inventory: undefined;
@@ -76,6 +79,7 @@ export type ReportsStackParamList = {
 export type AdminStackParamList = {
   Users: undefined;
   Pricing: undefined;
+  MarketPrices: undefined;
   CompanyProfile: undefined;
 };
 
@@ -274,6 +278,11 @@ function AdminNavigator() {
         options={{ title: t.pricing }}
       />
       <AdminStack.Screen
+        name="MarketPrices"
+        component={MarketPricesScreen}
+        options={{ title: t.marketPrices }}
+      />
+      <AdminStack.Screen
         name="CompanyProfile"
         component={CompanyProfileScreen}
         options={{ title: t.companyProfile }}
@@ -320,6 +329,16 @@ export default function MainNavigator() {
         headerRight: () => <SettingsButton />,
       }}
     >
+      <Tab.Screen
+        name="Dashboard"
+        component={DashboardScreen}
+        options={{
+          title: t.tabDashboard,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="TransactionsTab"
         component={TransactionsNavigator}

@@ -303,4 +303,38 @@ export default {
   vehiclePlateShort: 'Placa #',
   statementFor: 'Estado de cuenta para',
   generatedOn: 'Generado el',
+
+  // Quick Print
+  quickPrint: 'Impresión Rápida',
+
+  // Price History
+  priceHistory: 'Historial de Precios',
+  noPriceHistory: 'Sin cambios de precio registrados',
+  changedFrom: 'de',
+  changedTo: 'a',
+
+  // Customer Flags
+  flagged: 'Marcado',
+  flagCustomer: 'Marcar Cliente',
+  unflagCustomer: 'Quitar Marca',
+  flagReason: 'Razón de la marca',
+  flagReasonPlaceholder: 'ej. Material sospechoso, reporte de robo...',
+  flagWarning: 'Este cliente ha sido marcado',
+  flaggedCustomers: 'Marcados',
+
+  // Dashboard
+  tabDashboard: 'Inicio',
+  dashboard: 'Panel',
+  quickActions: 'Acciones Rápidas',
+  recentActivity: 'Actividad Reciente',
+  inventorySnapshot: 'Inventario',
+  lowInventory: 'Inventario bajo',
+
+  // Market Prices
+  marketPrices: 'Precios del Mercado',
+  marketPrice: 'Mercado',
+  yourPrice: 'Tu Precio',
+  lastUpdated: 'Última actualización',
+  refreshPrices: 'Actualizar Precios',
+  noMarketData: 'Datos del mercado no disponibles',
 } as const;

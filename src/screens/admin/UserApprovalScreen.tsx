@@ -211,6 +211,26 @@ export default function UserApprovalScreen({ navigation }: Props) {
             />
           </TouchableOpacity>
 
+          {/* Market Prices Link */}
+          <TouchableOpacity
+            style={styles.pricingButton}
+            onPress={() => navigation.navigate('MarketPrices')}
+          >
+            <View style={styles.linkRow}>
+              <Ionicons
+                name="trending-up-outline"
+                size={22}
+                color={colors.teal}
+              />
+              <Text style={styles.pricingButtonText}>{t.marketPrices}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textTertiary}
+            />
+          </TouchableOpacity>
+
           {/* Language Toggle */}
           <TouchableOpacity
             style={styles.pricingButton}

@@ -145,6 +145,12 @@ export default function TransactionsScreen({ navigation }: Props) {
             onPress={() =>
               navigation.navigate('ReceiptDetail', { receiptId: item.id })
             }
+            onLongPress={() =>
+              navigation.navigate('ReceiptDetail', {
+                receiptId: item.id,
+                printOnLoad: true,
+              })
+            }
           >
             <View style={styles.receiptHeader}>
               <Text style={styles.receiptNumber}>{item.receipt_number}</Text>

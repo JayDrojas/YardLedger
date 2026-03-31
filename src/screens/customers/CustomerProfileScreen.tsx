@@ -240,6 +240,21 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
         )}
       </View>
 
+      {/* Flag Warning */}
+      {customer.is_flagged && (
+        <View style={styles.flagBanner}>
+          <Ionicons name="warning" size={20} color={colors.danger} />
+          <View style={styles.flagBannerContent}>
+            <Text style={styles.flagBannerText}>{t.flagWarning}</Text>
+            {customer.flag_reason ? (
+              <Text style={styles.flagBannerReason}>
+                {customer.flag_reason}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      )}
+
       {/* Customer Info */}
       <View style={styles.infoSection}>
         <View style={styles.infoHeader}>
@@ -407,14 +422,71 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
         )}
       </View>
 
-      {/* Print Button */}
-      <TouchableOpacity
-        style={styles.printButton}
-        onPress={handlePrintStatement}
-      >
-        <Ionicons name="print" size={20} color={colors.background} />
-        <Text style={styles.printButtonText}>{t.printStatement}</Text>
-      </TouchableOpacity>
+      {/* Flag / Print Buttons */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={[
+            styles.flagButton,
+            customer.is_flagged && styles.flagButtonActive,
+          ]}
+          onPress={async () => {
+            if (customer.is_flagged) {
+              await updateCustomer(customer.id, {
+                is_flagged: false,
+                flag_reason: '',
+              });
+              setCustomer({ ...customer, is_flagged: false, flag_reason: '' });
+            } else {
+              Alert.prompt(
+                t.flagCustomer,
+                t.flagReasonPlaceholder,
+                [
+                  { text: t.cancel, style: 'cancel' },
+                  {
+                    text: t.flagCustomer,
+                    style: 'destructive',
+                    onPress: async (reason: string | undefined) => {
+                      await updateCustomer(customer.id, {
+                        is_flagged: true,
+                        flag_reason: reason ?? '',
+                      });
+                      setCustomer({
+                        ...customer,
+                        is_flagged: true,
+                        flag_reason: reason ?? '',
+                      });
+                    },
+                  },
+                ],
+                'plain-text',
+                ''
+              );
+            }
+          }}
+        >
+          <Ionicons
+            name={customer.is_flagged ? 'flag' : 'flag-outline'}
+            size={20}
+            color={customer.is_flagged ? colors.danger : colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.flagButtonText,
+              customer.is_flagged && styles.flagButtonTextActive,
+            ]}
+          >
+            {customer.is_flagged ? t.unflagCustomer : t.flagCustomer}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.printButton}
+          onPress={handlePrintStatement}
+        >
+          <Ionicons name="print" size={20} color={colors.background} />
+          <Text style={styles.printButtonText}>{t.printStatement}</Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={{ height: spacing.xxxl }} />
     </ScrollView>
@@ -435,6 +507,56 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontSize: fontSize.lg,
+  },
+  flagBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: 'rgba(248, 81, 73, 0.1)',
+    marginHorizontal: spacing.lg,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  flagBannerContent: {
+    flex: 1,
+  },
+  flagBannerText: {
+    color: colors.danger,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+  },
+  flagBannerReason: {
+    color: colors.danger,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  actionButtons: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+  },
+  flagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  flagButtonActive: {
+    borderColor: colors.danger,
+    backgroundColor: 'rgba(248, 81, 73, 0.1)',
+  },
+  flagButtonText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  flagButtonTextActive: {
+    color: colors.danger,
   },
   idSection: {
     alignItems: 'center',

@@ -301,4 +301,38 @@ export default {
   vehiclePlateShort: 'Plate #',
   statementFor: 'Statement for',
   generatedOn: 'Generated on',
+
+  // Quick Print
+  quickPrint: 'Quick Print',
+
+  // Price History
+  priceHistory: 'Price History',
+  noPriceHistory: 'No price changes recorded',
+  changedFrom: 'from',
+  changedTo: 'to',
+
+  // Customer Flags
+  flagged: 'Flagged',
+  flagCustomer: 'Flag Customer',
+  unflagCustomer: 'Remove Flag',
+  flagReason: 'Reason for flag',
+  flagReasonPlaceholder: 'e.g. Suspicious material, stolen goods report...',
+  flagWarning: 'This customer has been flagged',
+  flaggedCustomers: 'Flagged',
+
+  // Dashboard
+  tabDashboard: 'Dashboard',
+  dashboard: 'Dashboard',
+  quickActions: 'Quick Actions',
+  recentActivity: 'Recent Activity',
+  inventorySnapshot: 'Inventory',
+  lowInventory: 'Low inventory',
+
+  // Market Prices
+  marketPrices: 'Market Prices',
+  marketPrice: 'Market',
+  yourPrice: 'Your Price',
+  lastUpdated: 'Last updated',
+  refreshPrices: 'Refresh Prices',
+  noMarketData: 'Market data unavailable',
 } as const;

@@ -72,6 +72,40 @@ export async function fetchMetalCategories() {
   return data;
 }
 
+export interface PriceHistoryEntry {
+  id: string;
+  old_price: number;
+  new_price: number;
+  created_at: string;
+}
+
+export async function logPriceChange(
+  metalId: string,
+  oldPrice: number,
+  newPrice: number,
+  changedBy: string
+) {
+  await supabase.from('price_history').insert({
+    metal_id: metalId,
+    old_price: oldPrice,
+    new_price: newPrice,
+    changed_by: changedBy,
+  });
+}
+
+export async function fetchPriceHistory(
+  metalId: string
+): Promise<PriceHistoryEntry[]> {
+  const { data, error } = await supabase
+    .from('price_history')
+    .select('id, old_price, new_price, created_at')
+    .eq('metal_id', metalId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchMetalsByCategory(categoryId: string) {
   const { data, error } = await supabase
     .from('metals')
