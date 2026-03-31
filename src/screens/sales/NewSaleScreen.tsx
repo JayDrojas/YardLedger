@@ -86,7 +86,11 @@ export default function NewSaleScreen({ navigation }: Props) {
       Alert.alert(t.error, t.enterValidWeight);
       return;
     }
-    if (weight > Number(selectedItem.weight)) {
+    // Check cumulative weight for this metal across all line items
+    const alreadySelling = lineItems
+      .filter((li) => li.metalId === selectedItem.metal_id)
+      .reduce((sum, li) => sum + li.weight, 0);
+    if (weight + alreadySelling > Number(selectedItem.weight)) {
       Alert.alert(t.error, t.exceedsInventory);
       return;
     }

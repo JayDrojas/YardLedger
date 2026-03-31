@@ -27,7 +27,8 @@ export default function RegisterScreen({ navigation }: Props) {
   const { t } = useT();
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password || !confirmPassword) {
       Alert.alert(t.error, t.fillAllFields);
       return;
     }
@@ -38,7 +39,7 @@ export default function RegisterScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await dispatch(signUp({ email, password })).unwrap();
+      await dispatch(signUp({ email: trimmedEmail, password })).unwrap();
       Alert.alert(t.success, t.accountCreated, [
         { text: t.ok, onPress: () => navigation.navigate('Login') },
       ]);

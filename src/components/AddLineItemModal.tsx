@@ -15,6 +15,7 @@ import {
   fetchMetalsByCategory,
 } from '../services/metals';
 import { useT } from '../hooks/useT';
+import { validateWeight } from '../utils/validation';
 import { colors, spacing, fontSize, borderRadius } from '../constants';
 
 // In-memory recent metals cache (persists for the app session)
@@ -105,20 +106,28 @@ export default function AddLineItemModal({
     setStep('weight');
   };
 
+  const parsedGross = validateWeight(grossWeight);
+  const parsedTare = parseFloat(tareWeight) || 0;
   const netWeight =
     weightMode === 'net'
-      ? parseFloat(weight) || 0
-      : (parseFloat(grossWeight) || 0) - (parseFloat(tareWeight) || 0);
+      ? (validateWeight(weight) ?? 0)
+      : (parsedGross ?? 0) - parsedTare;
 
   const handleAdd = () => {
     if (!selectedMetal) return;
-    if (netWeight <= 0) return;
+    if (weightMode === 'net') {
+      if (validateWeight(weight) === null) return;
+    } else {
+      if (parsedGross === null) return;
+      if (parsedTare < 0) return;
+      if (netWeight <= 0) return;
+    }
     const weightData: WeightData | undefined =
       weightMode === 'tare'
         ? {
             net: netWeight,
-            gross: parseFloat(grossWeight) || 0,
-            tare: parseFloat(tareWeight) || 0,
+            gross: parsedGross ?? 0,
+            tare: parsedTare,
           }
         : undefined;
     addToRecentMetals(selectedMetal);

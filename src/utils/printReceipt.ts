@@ -3,6 +3,7 @@ import {
   fetchCompanySettings,
   type CompanySettings,
 } from '../services/companySettings';
+import { escapeHtml } from './validation';
 
 interface PrintLineItem {
   metal_name: string;
@@ -31,7 +32,7 @@ function buildReceiptHtml(
     .map(
       (item) => `
       <tr>
-        <td>${item.metal_name}</td>
+        <td>${escapeHtml(item.metal_name)}</td>
         <td style="text-align:right">${Number(item.weight).toFixed(2)} lbs</td>
         <td style="text-align:right">$${Number(item.price_per_lb).toFixed(4)}/lb${
           item.is_price_override
@@ -52,15 +53,15 @@ function buildReceiptHtml(
   });
 
   // Company header
-  const companyName = company?.company_name || 'YardLedger';
+  const companyName = escapeHtml(company?.company_name || 'YardLedger');
   const logoHtml = company?.logo_url
     ? `<img src="${company.logo_url}" style="max-width:120px;max-height:80px;object-fit:contain;margin-bottom:8px;" />`
     : '';
   const addressHtml = company?.address
-    ? `<div style="font-size:12px;color:#666;margin-bottom:2px;">${company.address.replace(/\n/g, '<br>')}</div>`
+    ? `<div style="font-size:12px;color:#666;margin-bottom:2px;">${escapeHtml(company.address).replace(/\n/g, '<br>')}</div>`
     : '';
   const companyPhoneHtml = company?.phone
-    ? `<div style="font-size:12px;color:#666;">${company.phone}</div>`
+    ? `<div style="font-size:12px;color:#666;">${escapeHtml(company.phone)}</div>`
     : '';
 
   const signatureHtml = receipt.signature_uri
@@ -102,9 +103,9 @@ function buildReceiptHtml(
 
       <div class="info-row">
         <span class="info-label">Customer</span>
-        <span>${receipt.customer_name}</span>
+        <span>${escapeHtml(receipt.customer_name)}</span>
       </div>
-      ${receipt.customer_phone ? `<div class="info-row"><span class="info-label">Phone</span><span>${receipt.customer_phone}</span></div>` : ''}
+      ${receipt.customer_phone ? `<div class="info-row"><span class="info-label">Phone</span><span>${escapeHtml(receipt.customer_phone)}</span></div>` : ''}
       <div class="info-row">
         <span class="info-label">Date</span>
         <span>${date}</span>

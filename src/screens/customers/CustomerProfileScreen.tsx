@@ -24,6 +24,7 @@ import {
   type Customer,
 } from '../../services/customers';
 import { fetchCompanySettings } from '../../services/companySettings';
+import { escapeHtml } from '../../utils/validation';
 import { useT } from '../../hooks/useT';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
@@ -116,9 +117,9 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
     try {
       const company = await fetchCompanySettings();
       const companyHeader = company
-        ? `<h2 style="margin:0">${company.company_name}</h2>
-           <p style="margin:4px 0;color:#666">${company.address}</p>
-           <p style="margin:4px 0;color:#666">${company.phone}</p>`
+        ? `<h2 style="margin:0">${escapeHtml(company.company_name)}</h2>
+           <p style="margin:4px 0;color:#666">${escapeHtml(company.address)}</p>
+           <p style="margin:4px 0;color:#666">${escapeHtml(company.phone)}</p>`
         : '';
 
       const rows = receipts
@@ -126,8 +127,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           (r) => `
         <tr>
           <td>${new Date(r.created_at).toLocaleDateString()}</td>
-          <td>${r.receipt_number}</td>
-          <td>${r.line_items.map((li) => `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`).join(', ')}</td>
+          <td>${escapeHtml(r.receipt_number)}</td>
+          <td>${r.line_items.map((li) => `${escapeHtml(li.metal_name)} (${Number(li.weight).toFixed(2)} lbs)`).join(', ')}</td>
           <td style="text-align:right">$${Number(r.subtotal).toFixed(2)}</td>
         </tr>`
         )
@@ -145,15 +146,15 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           <div class="header">
             ${companyHeader}
             <hr/>
-            <h3>${t.statementFor} ${customer.name}</h3>
+            <h3>${t.statementFor} ${escapeHtml(customer.name)}</h3>
             <p style="color:#666">${t.generatedOn} ${new Date().toLocaleDateString()}</p>
           </div>
           <div class="summary">
             <strong>${t.totalTransactions}:</strong> ${receipts.length} &nbsp;&nbsp;
             <strong>${t.totalSpent}:</strong> $${totalSpent.toFixed(2)}
           </div>
-          ${customer.drivers_license ? `<p><strong>${t.dlNumber}:</strong> ${customer.drivers_license}</p>` : ''}
-          ${customer.phone ? `<p><strong>${t.phone}:</strong> ${customer.phone}</p>` : ''}
+          ${customer.drivers_license ? `<p><strong>${t.dlNumber}:</strong> ${escapeHtml(customer.drivers_license)}</p>` : ''}
+          ${customer.phone ? `<p><strong>${t.phone}:</strong> ${escapeHtml(customer.phone)}</p>` : ''}
           <table>
             <thead><tr>
               <th>${t.transactionDate}</th>

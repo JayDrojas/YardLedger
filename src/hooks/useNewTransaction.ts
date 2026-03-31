@@ -139,7 +139,7 @@ export function useNewTransaction(
     onSuccess: (receiptId: string) => void,
     customerId?: string
   ) => {
-    if (!customerName) {
+    if (!customerName.trim()) {
       Alert.alert(t.error, t.enterCustomerName);
       return;
     }

@@ -27,14 +27,15 @@ export default function LoginScreen({ navigation }: Props) {
   const { t } = useT();
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
       Alert.alert(t.error, t.fillAllFields);
       return;
     }
 
     setLoading(true);
     try {
-      await dispatch(signIn({ email, password })).unwrap();
+      await dispatch(signIn({ email: trimmedEmail, password })).unwrap();
     } catch (error) {
       Alert.alert(t.loginFailed, (error as Error).message);
     } finally {
