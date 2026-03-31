@@ -104,7 +104,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
       if (printAfterSave) {
         tx.resetForm();
-        navigation.replace('ReceiptDetail', {
+        navigation.navigate('ReceiptDetail', {
           receiptId,
           printOnLoad: true,
         });
