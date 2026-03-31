@@ -31,11 +31,11 @@ export const spacing = {
 } as const;
 
 export const fontSize = {
-  xs: 11,
-  sm: 13,
-  md: 14,
-  lg: 16,
-  xl: 18,
+  xs: 13,
+  sm: 14,
+  md: 15,
+  lg: 17,
+  xl: 19,
   xxl: 24,
   title: 32,
 } as const;

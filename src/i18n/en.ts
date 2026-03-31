@@ -1,6 +1,7 @@
 export default {
   // Common
   error: 'Error',
+  retry: 'Retry',
   success: 'Success',
   cancel: 'Cancel',
   ok: 'OK',
@@ -228,4 +229,22 @@ export default {
   clearSearch: 'Clear',
   searchCustomer: 'Search past customers...',
   noCustomersFound: 'No matching customers',
+
+  // Daily Stats
+  todaysSummary: "Today's Summary",
+  buys: 'Buys',
+  spent: 'Spent',
+
+  // Recent Metals
+  recent: 'Recent',
+
+  // Confirm Remove
+  removeItem: 'Remove Item',
+  removeItemConfirm: 'Remove this line item?',
+  remove: 'Remove',
+
+  // Language
+  language: 'Language',
+  english: 'English',
+  spanish: 'Español',
 } as const;

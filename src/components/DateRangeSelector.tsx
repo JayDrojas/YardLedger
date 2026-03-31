@@ -9,12 +9,19 @@ interface DateRangeSelectorProps {
   onSelect: (preset: DatePreset) => void;
 }
 
+function localDateString(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export function getDateRange(preset: DatePreset): {
   start: string;
   end: string;
 } {
   const now = new Date();
-  const end = now.toISOString().slice(0, 10);
+  const end = localDateString(now);
 
   switch (preset) {
     case 'today':
@@ -22,12 +29,12 @@ export function getDateRange(preset: DatePreset): {
     case 'week': {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return { start: weekAgo.toISOString().slice(0, 10), end };
+      return { start: localDateString(weekAgo), end };
     }
     case 'month': {
       const monthAgo = new Date(now);
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return { start: monthAgo.toISOString().slice(0, 10), end };
+      return { start: localDateString(monthAgo), end };
     }
   }
 }

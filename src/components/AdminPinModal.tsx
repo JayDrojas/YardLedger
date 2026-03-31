@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useAdminVerification } from '../hooks/useAdminVerification';
 import { useT } from '../hooks/useT';
+import { colors, spacing, fontSize, borderRadius } from '../constants';
 
 interface AdminPinModalProps {
   visible: boolean;
@@ -57,7 +58,7 @@ export default function AdminPinModal({
           <TextInput
             style={styles.input}
             placeholder={t.adminEmail}
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textTertiary}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -69,7 +70,7 @@ export default function AdminPinModal({
             ref={passwordRef}
             style={styles.input}
             placeholder={t.adminPassword}
-            placeholderTextColor="#666"
+            placeholderTextColor={colors.textTertiary}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -106,80 +107,80 @@ export default function AdminPinModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(1, 4, 9, 0.8)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: spacing.xl,
   },
   modal: {
-    backgroundColor: '#1c2128',
-    borderRadius: 16,
-    padding: 24,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.xl,
     width: '100%',
     maxWidth: 400,
     borderWidth: 1,
-    borderColor: '#30363d',
+    borderColor: colors.border,
   },
   title: {
-    color: '#f85149',
-    fontSize: 20,
+    color: colors.danger,
+    fontSize: fontSize.xl,
     fontWeight: '700',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: spacing.xs,
   },
   subtitle: {
-    color: '#8b949e',
-    fontSize: 14,
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   input: {
-    backgroundColor: '#0d1117',
-    color: '#e6edf3',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 12,
-    fontSize: 16,
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    fontSize: fontSize.lg,
     borderWidth: 1,
-    borderColor: '#30363d',
+    borderColor: colors.border,
   },
   errorText: {
-    color: '#f85149',
-    fontSize: 13,
+    color: colors.danger,
+    fontSize: fontSize.sm,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   buttonRow: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
   cancelButton: {
     flex: 1,
-    padding: 14,
-    borderRadius: 10,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: '#30363d',
+    borderColor: colors.border,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#8b949e',
-    fontSize: 16,
+    color: colors.textSecondary,
+    fontSize: fontSize.lg,
     fontWeight: '600',
   },
   verifyButton: {
     flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: '#f85149',
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.danger,
     alignItems: 'center',
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   verifyButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
+    color: colors.white,
+    fontSize: fontSize.lg,
     fontWeight: '700',
   },
 });

@@ -1,6 +1,14 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { useAppDispatch, useAppSelector, type RootState } from '../../store';
 import { fetchProfile, signOut } from '../../store/authStore';
+import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { colors, spacing, fontSize } from '../../constants';
 
@@ -8,10 +16,18 @@ export default function PendingApprovalScreen() {
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state: RootState) => state.auth);
   const { t } = useT();
+  const [checking, setChecking] = useState(false);
 
-  const handleCheckStatus = () => {
-    if (user?.id) {
-      dispatch(fetchProfile(user.id));
+  const handleCheckStatus = async () => {
+    if (user?.id && !checking) {
+      setChecking(true);
+      try {
+        await dispatch(fetchProfile(user.id)).unwrap();
+      } catch {
+        // Profile fetch failed, stay on screen
+      } finally {
+        setChecking(false);
+      }
     }
   };
 
@@ -21,12 +37,22 @@ export default function PendingApprovalScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>&#128274;</Text>
+      <View style={styles.iconCircle}>
+        <Ionicons name="lock-closed" size={36} color={colors.warning} />
+      </View>
       <Text style={styles.title}>{t.accountPending}</Text>
       <Text style={styles.message}>{t.pendingMessage}</Text>
 
-      <TouchableOpacity style={styles.checkButton} onPress={handleCheckStatus}>
-        <Text style={styles.checkButtonText}>{t.checkStatus}</Text>
+      <TouchableOpacity
+        style={styles.checkButton}
+        onPress={handleCheckStatus}
+        disabled={checking}
+      >
+        {checking ? (
+          <ActivityIndicator color={colors.background} />
+        ) : (
+          <Text style={styles.checkButtonText}>{t.checkStatus}</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -44,8 +70,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
   },
-  icon: {
-    fontSize: 64,
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: spacing.xl,
   },
   title: {

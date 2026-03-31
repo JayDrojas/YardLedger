@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
@@ -76,14 +77,23 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
   const handleSaveSuccess = useCallback(
     (receiptId: string) => {
-      setSavedReceipt({
-        id: receiptId,
-        total: tx.receiptTotal,
-        customerName: tx.customerName,
-        itemCount: tx.lineItems.length,
-      });
+      if (printAfterSave) {
+        // Go straight to receipt detail with print
+        tx.resetForm();
+        navigation.replace('ReceiptDetail', {
+          receiptId,
+          printOnLoad: true,
+        });
+      } else {
+        setSavedReceipt({
+          id: receiptId,
+          total: tx.receiptTotal,
+          customerName: tx.customerName,
+          itemCount: tx.lineItems.length,
+        });
+      }
     },
-    [tx.receiptTotal, tx.customerName, tx.lineItems.length]
+    [printAfterSave, tx, navigation]
   );
 
   const handleNewTicket = useCallback(
@@ -211,7 +221,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   ) : (
                     <TouchableOpacity onPress={() => tx.startPriceEdit(index)}>
                       <Text style={styles.lineItemDetail}>
-                        {item.weight} lbs @{' '}
+                        {Number(item.weight).toFixed(2)} lbs @{' '}
                         <Text
                           style={
                             item.isPriceOverride
@@ -219,12 +229,13 @@ export default function NewTransactionScreen({ navigation }: Props) {
                               : undefined
                           }
                         >
-                          ${item.pricePerLb}/lb
+                          ${Number(item.pricePerLb).toFixed(4)}/lb
                         </Text>
                         {item.isPriceOverride && (
                           <Text style={styles.originalPrice}>
                             {' '}
-                            (was ${item.originalPricePerLb}/lb)
+                            (was ${Number(item.originalPricePerLb).toFixed(4)}
+                            /lb)
                           </Text>
                         )}
                       </Text>
@@ -235,7 +246,16 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   ${item.total.toFixed(2)}
                 </Text>
                 <TouchableOpacity
-                  onPress={() => tx.removeLineItem(index)}
+                  onPress={() =>
+                    Alert.alert(t.removeItem, t.removeItemConfirm, [
+                      { text: t.cancel, style: 'cancel' },
+                      {
+                        text: t.remove,
+                        style: 'destructive',
+                        onPress: () => tx.removeLineItem(index),
+                      },
+                    ])
+                  }
                   style={styles.removeButton}
                 >
                   <Text style={styles.removeButtonText}>X</Text>

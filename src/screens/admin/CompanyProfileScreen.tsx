@@ -28,6 +28,7 @@ export default function CompanyProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  const [settingsId, setSettingsId] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
@@ -41,6 +42,7 @@ export default function CompanyProfileScreen() {
     try {
       const data = await fetchCompanySettings();
       if (data) {
+        setSettingsId(data.id);
         setCompanyName(data.company_name);
         setAddress(data.address);
         setPhone(data.phone);
@@ -54,7 +56,7 @@ export default function CompanyProfileScreen() {
   };
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!profile || !settingsId) return;
     setSaving(true);
     try {
       await updateCompanySettings(
@@ -63,7 +65,8 @@ export default function CompanyProfileScreen() {
           address: address.trim(),
           phone: phone.trim(),
         },
-        profile.id
+        profile.id,
+        settingsId
       );
       Alert.alert(t.success, t.companySettingsSaved);
     } catch (err) {
@@ -85,9 +88,14 @@ export default function CompanyProfileScreen() {
 
     if (result.canceled) return;
 
+    if (!settingsId) return;
     setUploading(true);
     try {
-      const url = await uploadCompanyLogo(result.assets[0].uri, profile.id);
+      const url = await uploadCompanyLogo(
+        result.assets[0].uri,
+        profile.id,
+        settingsId
+      );
       setLogoUrl(url);
       Alert.alert(t.success, t.logoUploaded);
     } catch (err) {
@@ -192,7 +200,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   sectionTitle: {
-    color: colors.accent,
+    color: colors.textPrimary,
     fontSize: fontSize.xl,
     fontWeight: '700',
     marginBottom: spacing.md,

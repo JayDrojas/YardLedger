@@ -61,9 +61,16 @@ export interface CategoryProfitSummary {
   totalProfit: number;
 }
 
+interface SaleWithCategory {
+  weight: number;
+  total_revenue: number;
+  cost_basis_per_lb: number;
+  profit: number;
+  metals?: { metal_categories?: { name: string } | null } | null;
+}
+
 export function aggregateSalesByCategory(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sales: any[]
+  sales: SaleWithCategory[]
 ): CategoryProfitSummary[] {
   const map = new Map<string, CategoryProfitSummary>();
 

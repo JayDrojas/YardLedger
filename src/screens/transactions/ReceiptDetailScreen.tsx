@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,29 @@ import { fetchReceiptById } from '../../services/receipts';
 import { printReceipt } from '../../utils/printReceipt';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
+interface ReceiptLineItem {
+  id: string;
+  metal_name: string;
+  weight: number;
+  gross_weight?: number | null;
+  tare_weight?: number | null;
+  price_per_lb: number;
+  total: number;
+  is_price_override: boolean;
+  original_price_per_lb?: number;
+}
+
+interface ReceiptDetail {
+  id: string;
+  receipt_number: string;
+  customer_name: string;
+  customer_phone?: string;
+  subtotal: number;
+  signature_uri?: string | null;
+  created_at: string;
+  line_items: ReceiptLineItem[];
+}
+
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
   'ReceiptDetail'
@@ -24,40 +47,44 @@ type Props = NativeStackScreenProps<
 export default function ReceiptDetailScreen({ route }: Props) {
   const { t } = useT();
   const { receiptId, printOnLoad } = route.params;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [receipt, setReceipt] = useState<any>(null);
+  const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadReceipt();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [receiptId]);
-
-  const loadReceipt = async () => {
-    try {
-      const data = await fetchReceiptById(receiptId);
-      setReceipt(data);
-
-      if (printOnLoad && data) {
-        handlePrint(data);
+  const handlePrint = useCallback(
+    async (data?: ReceiptDetail) => {
+      const target = data ?? receipt;
+      if (!target) return;
+      try {
+        await printReceipt(target);
+      } catch (err) {
+        Alert.alert(t.error, (err as Error).message);
       }
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [receipt, t.error]
+  );
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handlePrint = async (data?: any) => {
-    const target = data ?? receipt;
-    if (!target) return;
-    try {
-      await printReceipt(target);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
-    }
-  };
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await fetchReceiptById(receiptId);
+        setReceipt(data);
+
+        if (printOnLoad && data) {
+          // Print directly without going through handlePrint to avoid dep cycle
+          try {
+            await printReceipt(data);
+          } catch (err) {
+            Alert.alert(t.error, (err as Error).message);
+          }
+        }
+      } catch (err) {
+        Alert.alert(t.error, (err as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [receiptId, printOnLoad, t.error]);
 
   if (loading) {
     return (
@@ -108,64 +135,48 @@ export default function ReceiptDetailScreen({ route }: Props) {
           <Text style={styles.sectionTitle}>
             {t.items} ({lineItems.length})
           </Text>
-          {lineItems.map(
-            (
-              item: {
-                id: string;
-                metal_name: string;
-                weight: number;
-                gross_weight?: number | null;
-                tare_weight?: number | null;
-                price_per_lb: number;
-                total: number;
-                is_price_override: boolean;
-                original_price_per_lb?: number;
-              },
-              index: number
-            ) => (
-              <View key={item.id ?? index} style={styles.lineItem}>
-                <View style={styles.lineItemLeft}>
-                  <View style={styles.lineItemHeader}>
-                    <Text style={styles.metalName}>{item.metal_name}</Text>
-                    {item.is_price_override && (
-                      <View style={styles.overrideBadge}>
-                        <Text style={styles.overrideBadgeText}>
-                          {t.priceOverride}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  {item.gross_weight != null && item.tare_weight != null ? (
-                    <>
-                      <Text style={styles.tareDetail}>
-                        {t.grossWeightLabel}:{' '}
-                        {Number(item.gross_weight).toFixed(2)} —{' '}
-                        {t.tareWeightLabel}:{' '}
-                        {Number(item.tare_weight).toFixed(2)}
+          {lineItems.map((item, index) => (
+            <View key={item.id ?? index} style={styles.lineItem}>
+              <View style={styles.lineItemLeft}>
+                <View style={styles.lineItemHeader}>
+                  <Text style={styles.metalName}>{item.metal_name}</Text>
+                  {item.is_price_override && (
+                    <View style={styles.overrideBadge}>
+                      <Text style={styles.overrideBadgeText}>
+                        {t.priceOverride}
                       </Text>
-                      <Text style={styles.lineItemDetail}>
-                        {t.netWeightResult} {Number(item.weight).toFixed(2)} lbs
-                        @ ${Number(item.price_per_lb).toFixed(4)}/lb
-                      </Text>
-                    </>
-                  ) : (
-                    <Text style={styles.lineItemDetail}>
-                      {Number(item.weight).toFixed(2)} lbs @ $
-                      {Number(item.price_per_lb).toFixed(4)}/lb
-                    </Text>
-                  )}
-                  {item.is_price_override && item.original_price_per_lb && (
-                    <Text style={styles.originalPrice}>
-                      was ${Number(item.original_price_per_lb).toFixed(4)}/lb
-                    </Text>
+                    </View>
                   )}
                 </View>
-                <Text style={styles.lineItemTotal}>
-                  ${Number(item.total).toFixed(2)}
-                </Text>
+                {item.gross_weight != null && item.tare_weight != null ? (
+                  <>
+                    <Text style={styles.tareDetail}>
+                      {t.grossWeightLabel}:{' '}
+                      {Number(item.gross_weight).toFixed(2)} —{' '}
+                      {t.tareWeightLabel}: {Number(item.tare_weight).toFixed(2)}
+                    </Text>
+                    <Text style={styles.lineItemDetail}>
+                      {t.netWeightResult} {Number(item.weight).toFixed(2)} lbs @
+                      ${Number(item.price_per_lb).toFixed(4)}/lb
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={styles.lineItemDetail}>
+                    {Number(item.weight).toFixed(2)} lbs @ $
+                    {Number(item.price_per_lb).toFixed(4)}/lb
+                  </Text>
+                )}
+                {item.is_price_override && item.original_price_per_lb && (
+                  <Text style={styles.originalPrice}>
+                    was ${Number(item.original_price_per_lb).toFixed(4)}/lb
+                  </Text>
+                )}
               </View>
-            )
-          )}
+              <Text style={styles.lineItemTotal}>
+                ${Number(item.total).toFixed(2)}
+              </Text>
+            </View>
+          ))}
         </View>
 
         {/* Total */}
@@ -242,7 +253,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    color: colors.accent,
+    color: colors.textPrimary,
     fontSize: fontSize.xl,
     fontWeight: '700',
     marginBottom: spacing.sm,
@@ -323,7 +334,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     borderLeftColor: colors.accent,
   },
   totalLabel: {

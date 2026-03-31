@@ -33,9 +33,11 @@ export default function PriceSheetModal({
   const { t } = useT();
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const categories: MetalCategory[] = await fetchMetalCategories();
       const results: MetalSection[] = [];
@@ -47,17 +49,17 @@ export default function PriceSheetModal({
       }
       setSections(results);
     } catch {
-      // Will show empty
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && sections.length === 0) {
       loadData();
     }
-  }, [visible, loadData]);
+  }, [visible, loadData, sections.length]);
 
   return (
     <Modal
@@ -80,6 +82,18 @@ export default function PriceSheetModal({
             size="large"
             style={styles.loader}
           />
+        ) : loadError ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>{t.error}</Text>
+            <TouchableOpacity
+              onPress={loadData}
+              style={{ marginTop: spacing.md }}
+            >
+              <Text style={{ color: colors.accent, fontSize: fontSize.lg }}>
+                {t.retry}
+              </Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <SectionList
             sections={sections}

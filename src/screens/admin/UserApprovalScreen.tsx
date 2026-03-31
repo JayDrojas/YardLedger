@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { useT } from '../../hooks/useT';
 import { useUserApproval } from '../../hooks/useUserApproval';
-import { useAppSelector, type RootState } from '../../store';
+import { useAppSelector, useAppDispatch, type RootState } from '../../store';
+import { toggleLanguage } from '../../store/settingsStore';
 import { createAccessCode } from '../../services/accessCodes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AdminStackParamList } from '../../navigation/MainNavigator';
@@ -20,7 +21,8 @@ import { colors, spacing, fontSize, borderRadius } from '../../constants';
 type Props = NativeStackScreenProps<AdminStackParamList, 'Users'>;
 
 export default function UserApprovalScreen({ navigation }: Props) {
-  const { t } = useT();
+  const { t, language } = useT();
+  const dispatch = useAppDispatch();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const {
     pendingUsers,
@@ -209,6 +211,24 @@ export default function UserApprovalScreen({ navigation }: Props) {
             />
           </TouchableOpacity>
 
+          {/* Language Toggle */}
+          <TouchableOpacity
+            style={styles.pricingButton}
+            onPress={() => dispatch(toggleLanguage())}
+          >
+            <View style={styles.linkRow}>
+              <Ionicons
+                name="language-outline"
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={styles.pricingButtonText}>{t.language}</Text>
+            </View>
+            <Text style={styles.languageValue}>
+              {language === 'en' ? t.english : t.spanish}
+            </Text>
+          </TouchableOpacity>
+
           {/* Pending Users Header */}
           {pendingUsers.length > 0 && (
             <View style={styles.sectionHeader}>
@@ -328,6 +348,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
+  languageValue: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
   codeSection: {
     margin: spacing.lg,
     padding: spacing.lg,
@@ -335,7 +360,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     borderLeftColor: colors.accent,
   },
   codeSectionTitle: {

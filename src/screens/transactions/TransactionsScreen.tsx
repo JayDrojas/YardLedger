@@ -74,9 +74,28 @@ export default function TransactionsScreen({ navigation }: Props) {
     setAppliedSearch('');
   };
 
+  const stats = useMemo(() => {
+    const count = receipts.length;
+    const total = receipts.reduce((sum, r) => sum + Number(r.subtotal ?? 0), 0);
+    return { count, total };
+  }, [receipts]);
+
   return (
     <View style={styles.container}>
       <DateRangeSelector selected={preset} onSelect={setPreset} />
+      {stats.count > 0 && (
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.count}</Text>
+            <Text style={styles.statLabel}>{t.buys}</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>${stats.total.toFixed(2)}</Text>
+            <Text style={styles.statLabel}>{t.spent}</Text>
+          </View>
+        </View>
+      )}
       <View style={styles.searchRow}>
         <TextInput
           style={styles.searchInput}
@@ -200,6 +219,38 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.md,
     fontWeight: '600',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+    paddingVertical: spacing.md,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statNumber: {
+    color: colors.accent,
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
+  },
+  statLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: colors.border,
   },
   receiptCard: {
     backgroundColor: colors.card,

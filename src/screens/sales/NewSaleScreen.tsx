@@ -296,7 +296,8 @@ export default function NewSaleScreen({ navigation }: Props) {
               <View style={styles.lineItemInfo}>
                 <Text style={styles.lineItemName}>{item.metalName}</Text>
                 <Text style={styles.lineItemDetail}>
-                  {item.weight} lbs @ ${item.salePricePerLb.toFixed(4)}
+                  {Number(item.weight).toFixed(2)} lbs @ $
+                  {Number(item.salePricePerLb).toFixed(4)}
                   {t.perLb}
                 </Text>
                 <Text

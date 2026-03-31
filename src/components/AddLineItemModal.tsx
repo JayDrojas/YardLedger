@@ -17,6 +17,17 @@ import {
 import { useT } from '../hooks/useT';
 import { colors, spacing, fontSize, borderRadius } from '../constants';
 
+// In-memory recent metals cache (persists for the app session)
+const MAX_RECENT = 5;
+let recentMetalsCache: Metal[] = [];
+
+export function addToRecentMetals(metal: Metal) {
+  recentMetalsCache = [
+    metal,
+    ...recentMetalsCache.filter((m) => m.id !== metal.id),
+  ].slice(0, MAX_RECENT);
+}
+
 type Step = 'category' | 'metal' | 'weight';
 type WeightMode = 'net' | 'tare';
 
@@ -64,10 +75,10 @@ export default function AddLineItemModal({
   }, []);
 
   useEffect(() => {
-    if (visible) {
+    if (visible && categories.length === 0) {
       loadCategories();
     }
-  }, [visible, loadCategories]);
+  }, [visible, loadCategories, categories.length]);
 
   const handleSelectCategory = async (category: MetalCategory) => {
     setSelectedCategory(category);
@@ -110,6 +121,7 @@ export default function AddLineItemModal({
             tare: parseFloat(tareWeight) || 0,
           }
         : undefined;
+    addToRecentMetals(selectedMetal);
     onAdd(selectedMetal, netWeight, weightData);
     handleReset();
   };
@@ -218,6 +230,31 @@ export default function AddLineItemModal({
                 data={categories}
                 keyExtractor={(item) => item.id}
                 contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                  recentMetalsCache.length > 0 ? (
+                    <View style={styles.recentSection}>
+                      <Text style={styles.recentTitle}>{t.recent}</Text>
+                      {recentMetalsCache.map((metal) => (
+                        <TouchableOpacity
+                          key={metal.id}
+                          style={styles.recentCard}
+                          onPress={() => {
+                            setSelectedMetal(metal);
+                            setStep('weight');
+                          }}
+                        >
+                          <View>
+                            <Text style={styles.optionName}>{metal.name}</Text>
+                            <Text style={styles.optionPrice}>
+                              ${Number(metal.price_per_lb).toFixed(4)}/lb
+                            </Text>
+                          </View>
+                          <Text style={styles.chevron}>{'>'}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  ) : null
+                }
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={styles.optionCard}
@@ -254,7 +291,7 @@ export default function AddLineItemModal({
                     <View>
                       <Text style={styles.optionName}>{item.name}</Text>
                       <Text style={styles.optionPrice}>
-                        ${item.price_per_lb}/lb
+                        ${Number(item.price_per_lb).toFixed(4)}/lb
                       </Text>
                     </View>
                     <Text style={styles.chevron}>{'>'}</Text>
@@ -269,7 +306,8 @@ export default function AddLineItemModal({
         {step === 'weight' && selectedMetal && (
           <View style={styles.weightContainer}>
             <Text style={styles.metalInfo}>
-              {selectedMetal.name} — ${selectedMetal.price_per_lb}/lb
+              {selectedMetal.name} — $
+              {Number(selectedMetal.price_per_lb).toFixed(4)}/lb
             </Text>
 
             {/* Weight mode toggle */}
@@ -436,6 +474,27 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxxl,
+  },
+  recentSection: {
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  recentTitle: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+    marginBottom: spacing.xs,
+  },
+  recentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderLeftWidth: 3,
   },
   listContent: {
     padding: spacing.lg,

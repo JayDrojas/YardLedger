@@ -1,4 +1,5 @@
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { TouchableOpacity, Text, View, Modal, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
 import { useAppSelector, useAppDispatch, type RootState } from '../store';
 import { signOut } from '../store/authStore';
+import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
 import { colors, fontSize, spacing } from '../constants';
 
@@ -74,9 +76,80 @@ const SalesStack = createNativeStackNavigator<SalesStackParamList>();
 const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
 
+function SettingsButton() {
+  const { t, language } = useT();
+  const dispatch = useAppDispatch();
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <>
+      <TouchableOpacity
+        style={navStyles.settingsButton}
+        onPress={() => setVisible(true)}
+      >
+        <Ionicons
+          name="settings-outline"
+          size={22}
+          color={colors.textSecondary}
+        />
+      </TouchableOpacity>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVisible(false)}
+      >
+        <TouchableOpacity
+          style={navStyles.settingsOverlay}
+          activeOpacity={1}
+          onPress={() => setVisible(false)}
+        >
+          <View style={navStyles.settingsModal}>
+            <TouchableOpacity
+              style={navStyles.settingsRow}
+              onPress={() => {
+                dispatch(toggleLanguage());
+                setVisible(false);
+              }}
+            >
+              <Ionicons
+                name="language-outline"
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={navStyles.settingsRowText}>{t.language}</Text>
+              <Text style={navStyles.settingsRowValue}>
+                {language === 'en' ? t.english : t.spanish}
+              </Text>
+            </TouchableOpacity>
+            <View style={navStyles.settingsDivider} />
+            <TouchableOpacity
+              style={navStyles.settingsRow}
+              onPress={() => {
+                setVisible(false);
+                dispatch(signOut());
+              }}
+            >
+              <Ionicons
+                name="log-out-outline"
+                size={22}
+                color={colors.danger}
+              />
+              <Text
+                style={[navStyles.settingsRowText, { color: colors.danger }]}
+              >
+                {t.signOut}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </>
+  );
+}
+
 function TransactionsNavigator() {
   const { t } = useT();
-  const dispatch = useAppDispatch();
   return (
     <TransactionsStack.Navigator screenOptions={stackScreenOptions}>
       <TransactionsStack.Screen
@@ -84,14 +157,7 @@ function TransactionsNavigator() {
         component={TransactionsScreen}
         options={{
           title: t.transactions,
-          headerRight: () => (
-            <TouchableOpacity
-              style={navStyles.signOutButton}
-              onPress={() => dispatch(signOut())}
-            >
-              <Text style={navStyles.signOutText}>{t.signOut}</Text>
-            </TouchableOpacity>
-          ),
+          headerRight: () => <SettingsButton />,
         }}
       />
       <TransactionsStack.Screen
@@ -184,7 +250,6 @@ function AdminNavigator() {
 
 export default function MainNavigator() {
   const { t } = useT();
-  const dispatch = useAppDispatch();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const isAdmin = profile?.role === 'admin';
 
@@ -218,14 +283,7 @@ export default function MainNavigator() {
           fontWeight: '700',
           fontSize: fontSize.xl,
         },
-        headerRight: () => (
-          <TouchableOpacity
-            style={navStyles.signOutButton}
-            onPress={() => dispatch(signOut())}
-          >
-            <Text style={navStyles.signOutText}>{t.signOut}</Text>
-          </TouchableOpacity>
-        ),
+        headerRight: () => <SettingsButton />,
       }}
     >
       <Tab.Screen
@@ -291,14 +349,45 @@ export default function MainNavigator() {
 }
 
 const navStyles = StyleSheet.create({
-  signOutButton: {
+  settingsButton: {
     marginRight: spacing.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    padding: spacing.sm,
   },
-  signOutText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
+  settingsOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+    paddingTop: 100,
+    paddingRight: spacing.lg,
+  },
+  settingsModal: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    minWidth: 220,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    gap: spacing.md,
+  },
+  settingsRowText: {
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
     fontWeight: '600',
+    flex: 1,
+  },
+  settingsRowValue: {
+    color: colors.accent,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  settingsDivider: {
+    height: 1,
+    backgroundColor: colors.border,
   },
 });

@@ -34,17 +34,23 @@ export function useUserApproval() {
 
   const handleApprove = async (userId: string) => {
     await approveUser(userId);
-    await load();
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, is_active: true } : u))
+    );
   };
 
   const handleDeactivate = async (userId: string) => {
     await deactivateUser(userId);
-    await load();
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, is_active: false } : u))
+    );
   };
 
   const handlePromote = async (userId: string) => {
     await promoteToAdmin(userId);
-    await load();
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: 'admin' } : u))
+    );
   };
 
   return {

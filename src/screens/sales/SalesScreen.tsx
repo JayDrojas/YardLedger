@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     borderLeftColor: colors.accent,
   },
   summaryLabel: {
