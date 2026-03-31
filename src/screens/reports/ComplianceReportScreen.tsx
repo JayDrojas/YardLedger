@@ -1,0 +1,432 @@
+import { useState, useCallback, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
+import DateRangeSelector, {
+  type DatePreset,
+  getDateRange,
+} from '../../components/DateRangeSelector';
+import { supabase } from '../../config/supabase';
+import { fetchCompanySettings } from '../../services/companySettings';
+import { Ionicons } from '@expo/vector-icons';
+import { useT } from '../../hooks/useT';
+import { colors, spacing, fontSize, borderRadius } from '../../constants';
+
+interface PurchaseRecordRow {
+  date: string;
+  receiptNumber: string;
+  sellerName: string;
+  dlNumber: string;
+  vehiclePlate: string;
+  vehicleDescription: string;
+  materials: string;
+  totalWeight: number;
+  amountPaid: number;
+  sellerAffirmed: boolean;
+  hasRestricted: boolean;
+}
+
+export default function ComplianceReportScreen() {
+  const { t } = useT();
+  const isFocused = useIsFocused();
+  const [preset, setPreset] = useState<DatePreset>('today');
+  const [rows, setRows] = useState<PurchaseRecordRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { start, end } = getDateRange(preset);
+      const { data, error } = await supabase
+        .from('receipts')
+        .select(
+          '*, line_items(metal_name, weight, total, metals(is_restricted)), customers(drivers_license)'
+        )
+        .eq('type', 'buy')
+        .gte('created_at', `${start}T00:00:00`)
+        .lte('created_at', `${end}T23:59:59`)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapped: PurchaseRecordRow[] = (data ?? []).map((r: any) => {
+        const lineItems = (r.line_items ?? []) as {
+          metal_name: string;
+          weight: number;
+          total: number;
+          metals?: { is_restricted?: boolean } | null;
+        }[];
+        const materials = lineItems
+          .map((li) => `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`)
+          .join(', ');
+        const totalWeight = lineItems.reduce(
+          (sum, li) => sum + Number(li.weight),
+          0
+        );
+        const hasRestricted = lineItems.some(
+          (li) => li.metals?.is_restricted === true
+        );
+
+        return {
+          date: new Date(r.created_at).toLocaleDateString(),
+          receiptNumber: r.receipt_number,
+          sellerName: r.customer_name,
+          dlNumber: r.customers?.drivers_license ?? '',
+          vehiclePlate: r.vehicle_plate ?? '',
+          vehicleDescription: r.vehicle_description ?? '',
+          materials,
+          totalWeight,
+          amountPaid: Number(r.subtotal),
+          sellerAffirmed: r.seller_affirmed ?? false,
+          hasRestricted,
+        };
+      });
+
+      setRows(mapped);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [preset, t.error]);
+
+  useEffect(() => {
+    if (isFocused) loadData();
+  }, [loadData, isFocused]);
+
+  const buildHtml = async (restrictedOnly: boolean) => {
+    const company = await fetchCompanySettings();
+    const filtered = restrictedOnly
+      ? rows.filter((r) => r.hasRestricted)
+      : rows;
+
+    const title = restrictedOnly ? t.restrictedReport : t.purchaseRecord;
+    const companyHeader = company
+      ? `<h2 style="margin:0">${company.company_name}</h2>
+         <p style="margin:4px 0;color:#666">${company.address} | ${company.phone}</p>`
+      : '';
+
+    const tableRows = filtered
+      .map(
+        (r) => `<tr>
+        <td>${r.date}</td>
+        <td>${r.receiptNumber}</td>
+        <td>${r.sellerName}</td>
+        <td>${r.dlNumber}</td>
+        <td>${r.vehiclePlate}</td>
+        <td>${r.materials}</td>
+        <td style="text-align:right">${r.totalWeight.toFixed(2)}</td>
+        <td style="text-align:right">$${r.amountPaid.toFixed(2)}</td>
+        <td>${r.sellerAffirmed ? 'Yes' : 'No'}</td>
+      </tr>`
+      )
+      .join('');
+
+    const totalPaid = filtered.reduce((s, r) => s + r.amountPaid, 0);
+
+    return `<html><head><style>
+      body { font-family: sans-serif; padding: 16px; font-size: 11px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+      th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+      th { background: #f5f5f5; font-weight: bold; font-size: 10px; }
+      .header { text-align: center; margin-bottom: 16px; }
+      h3 { margin: 4px 0; }
+    </style></head><body>
+      <div class="header">
+        ${companyHeader}
+        <hr/>
+        <h3>${title}</h3>
+        <p style="color:#666">${t.generatedOn} ${new Date().toLocaleDateString()}</p>
+      </div>
+      <table>
+        <thead><tr>
+          <th>${t.transactionDate}</th>
+          <th>${t.receipt}</th>
+          <th>${t.sellerName}</th>
+          <th>${t.dlNumberShort}</th>
+          <th>${t.vehiclePlateShort}</th>
+          <th>${t.materialDescription}</th>
+          <th style="text-align:right">${t.weightLbsLabel}</th>
+          <th style="text-align:right">${t.amountPaid}</th>
+          <th>Affirmed</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+        <tfoot><tr>
+          <td colspan="7" style="text-align:right;font-weight:bold">${t.total}</td>
+          <td style="text-align:right;font-weight:bold">$${totalPaid.toFixed(2)}</td>
+          <td></td>
+        </tr></tfoot>
+      </table>
+      <p style="margin-top:12px;color:#666;font-size:10px">
+        ${filtered.length} transactions | NM Sale of Recycled Metals Act
+      </p>
+    </body></html>`;
+  };
+
+  const handlePrint = async (restrictedOnly: boolean) => {
+    try {
+      const html = await buildHtml(restrictedOnly);
+      await Print.printAsync({ html });
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    try {
+      const header =
+        'Date,Receipt #,Seller,DL #,Plate #,Vehicle,Materials,Weight (lbs),Amount Paid,Affirmed,Restricted\n';
+      const csvRows = rows
+        .map(
+          (r) =>
+            `"${r.date}","${r.receiptNumber}","${r.sellerName}","${r.dlNumber}","${r.vehiclePlate}","${r.vehicleDescription}","${r.materials}",${r.totalWeight.toFixed(2)},${r.amountPaid.toFixed(2)},${r.sellerAffirmed},${r.hasRestricted}`
+        )
+        .join('\n');
+
+      const file = new File(Paths.cache, 'purchase_records.csv');
+      file.write(header + csvRows);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  };
+
+  const restrictedCount = rows.filter((r) => r.hasRestricted).length;
+
+  return (
+    <ScrollView style={styles.container}>
+      <DateRangeSelector selected={preset} onSelect={setPreset} />
+
+      {loading ? (
+        <ActivityIndicator
+          color={colors.accent}
+          size="large"
+          style={styles.loader}
+        />
+      ) : rows.length === 0 ? (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>{t.noDataForRange}</Text>
+        </View>
+      ) : (
+        <>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statNumber}>{rows.length}</Text>
+              <Text style={styles.statLabel}>{t.totalTransactions}</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBox}>
+              <Text style={styles.statNumber}>{restrictedCount}</Text>
+              <Text style={styles.statLabel}>{t.restrictedMaterial}</Text>
+            </View>
+          </View>
+
+          {/* Actions */}
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handlePrint(false)}
+            >
+              <Ionicons name="print" size={20} color={colors.accent} />
+              <Text style={styles.actionText}>{t.purchaseRecord}</Text>
+            </TouchableOpacity>
+
+            {restrictedCount > 0 && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => handlePrint(true)}
+              >
+                <Ionicons name="warning" size={20} color={colors.warning} />
+                <Text style={styles.actionText}>{t.restrictedReport}</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleExportCsv}
+            >
+              <Ionicons name="download-outline" size={20} color={colors.teal} />
+              <Text style={styles.actionText}>{t.exportCsv}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Transaction List */}
+          {rows.map((row, i) => (
+            <View
+              key={i}
+              style={[
+                styles.recordCard,
+                row.hasRestricted && styles.recordCardRestricted,
+              ]}
+            >
+              <View style={styles.recordHeader}>
+                <Text style={styles.recordReceipt}>{row.receiptNumber}</Text>
+                <Text style={styles.recordAmount}>
+                  ${row.amountPaid.toFixed(2)}
+                </Text>
+              </View>
+              <Text style={styles.recordSeller}>{row.sellerName}</Text>
+              <Text style={styles.recordDetail}>{row.date}</Text>
+              <Text style={styles.recordDetail}>{row.materials}</Text>
+              {row.dlNumber ? (
+                <Text style={styles.recordDetail}>
+                  {t.dlNumberShort} {row.dlNumber}
+                </Text>
+              ) : null}
+              {row.vehiclePlate ? (
+                <Text style={styles.recordDetail}>
+                  {t.vehiclePlateShort} {row.vehiclePlate}{' '}
+                  {row.vehicleDescription}
+                </Text>
+              ) : null}
+              {row.hasRestricted && (
+                <View style={styles.restrictedTag}>
+                  <Text style={styles.restrictedTagText}>
+                    {t.restrictedMaterial}
+                  </Text>
+                </View>
+              )}
+            </View>
+          ))}
+        </>
+      )}
+      <View style={{ height: spacing.xxxl }} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  loader: {
+    marginTop: spacing.xxxl,
+  },
+  empty: {
+    padding: spacing.xxxl,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.lg,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statNumber: {
+    color: colors.accent,
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
+  },
+  statLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: colors.border,
+  },
+  actions: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  actionText: {
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  recordCard: {
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+  },
+  recordCardRestricted: {
+    borderLeftColor: colors.warning,
+  },
+  recordHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  recordReceipt: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+  recordAmount: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+  },
+  recordSeller: {
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    marginTop: spacing.xs,
+  },
+  recordDetail: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  restrictedTag: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    marginTop: spacing.sm,
+  },
+  restrictedTagText: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+});

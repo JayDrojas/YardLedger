@@ -14,6 +14,9 @@ import DailySummaryScreen from '../screens/reports/DailySummaryScreen';
 import InventoryValuationScreen from '../screens/reports/InventoryValuationScreen';
 import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
+import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
+import CustomerListScreen from '../screens/customers/CustomerListScreen';
+import CustomerProfileScreen from '../screens/customers/CustomerProfileScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
@@ -38,6 +41,7 @@ const stackScreenOptions = {
 
 export type MainTabParamList = {
   TransactionsTab: undefined;
+  CustomersTab: undefined;
   Inventory: undefined;
   SalesTab: undefined;
   ReportsTab: undefined;
@@ -55,12 +59,18 @@ export type SalesStackParamList = {
   NewSale: undefined;
 };
 
+export type CustomersStackParamList = {
+  CustomerList: undefined;
+  CustomerProfile: { customerId: string };
+};
+
 export type ReportsStackParamList = {
   ReportsList: undefined;
   DailySummary: undefined;
   InventoryValuation: undefined;
   Profitability: undefined;
   Shrinkage: undefined;
+  ComplianceReport: undefined;
 };
 
 export type AdminStackParamList = {
@@ -73,6 +83,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TransactionsStack =
   createNativeStackNavigator<TransactionsStackParamList>();
 const SalesStack = createNativeStackNavigator<SalesStackParamList>();
+const CustomersStack = createNativeStackNavigator<CustomersStackParamList>();
 const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
 
@@ -192,6 +203,24 @@ function SalesNavigator() {
   );
 }
 
+function CustomersNavigator() {
+  const { t } = useT();
+  return (
+    <CustomersStack.Navigator screenOptions={stackScreenOptions}>
+      <CustomersStack.Screen
+        name="CustomerList"
+        component={CustomerListScreen}
+        options={{ title: t.customers }}
+      />
+      <CustomersStack.Screen
+        name="CustomerProfile"
+        component={CustomerProfileScreen}
+        options={{ title: t.customerProfile }}
+      />
+    </CustomersStack.Navigator>
+  );
+}
+
 function ReportsNavigator() {
   const { t } = useT();
   return (
@@ -220,6 +249,11 @@ function ReportsNavigator() {
         name="Shrinkage"
         component={ShrinkageScreen}
         options={{ title: t.shrinkage }}
+      />
+      <ReportsStack.Screen
+        name="ComplianceReport"
+        component={ComplianceReportScreen}
+        options={{ title: t.complianceReport }}
       />
     </ReportsStack.Navigator>
   );
@@ -294,6 +328,17 @@ export default function MainNavigator() {
           headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="receipt-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="CustomersTab"
+        component={CustomersNavigator}
+        options={{
+          title: t.tabCustomers,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="people-outline" size={size} color={color} />
           ),
         }}
       />

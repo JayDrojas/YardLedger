@@ -19,6 +19,9 @@ export function useNewTransaction(
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [vehicleDescription, setVehicleDescription] = useState('');
+  const [sellerAffirmed, setSellerAffirmed] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemInput[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -112,11 +115,19 @@ export function useNewTransaction(
     setOverridePrice('');
   };
 
+  const hasRestrictedMetal = lineItems.some((item) => {
+    // Check if any line item's metal is restricted — we store this at add time
+    return (item as LineItemInput & { isRestricted?: boolean }).isRestricted;
+  });
+
   const resetForm = (keepCustomer = false) => {
     if (!keepCustomer) {
       setCustomerName('');
       setCustomerPhone('');
     }
+    setVehiclePlate('');
+    setVehicleDescription('');
+    setSellerAffirmed(false);
     setLineItems([]);
     setSignature(null);
     setSaving(false);
@@ -164,6 +175,9 @@ export function useNewTransaction(
         signatureUri: signatureData,
         workerId: profile.id,
         notes: '',
+        vehiclePlate,
+        vehicleDescription,
+        sellerAffirmed,
         lineItems,
       });
       onSuccess(receipt.id);
@@ -180,6 +194,10 @@ export function useNewTransaction(
     lineItems,
     customerName,
     customerPhone,
+    vehiclePlate,
+    vehicleDescription,
+    sellerAffirmed,
+    hasRestrictedMetal,
     receiptTotal,
     signature,
     saving,
@@ -192,6 +210,9 @@ export function useNewTransaction(
     // Setters
     setCustomerName,
     setCustomerPhone,
+    setVehiclePlate,
+    setVehicleDescription,
+    setSellerAffirmed,
     setOverridePrice,
     setSignature,
 

@@ -36,6 +36,11 @@ export default function ReportsListScreen({ navigation }: Props) {
       subtitle: t.shrinkageDesc,
       screen: 'Shrinkage',
     },
+    {
+      title: t.complianceReport,
+      subtitle: t.purchaseRecordDesc,
+      screen: 'ComplianceReport',
+    },
   ];
 
   return (

@@ -1,0 +1,592 @@
+import { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { CustomersStackParamList } from '../../navigation/MainNavigator';
+import * as ImagePicker from 'expo-image-picker';
+import * as Print from 'expo-print';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  fetchCustomerById,
+  fetchCustomerReceipts,
+  updateCustomer,
+  uploadCustomerIdPhoto,
+  type Customer,
+} from '../../services/customers';
+import { fetchCompanySettings } from '../../services/companySettings';
+import { useT } from '../../hooks/useT';
+import { colors, spacing, fontSize, borderRadius } from '../../constants';
+
+type Props = NativeStackScreenProps<CustomersStackParamList, 'CustomerProfile'>;
+
+interface ReceiptRow {
+  id: string;
+  receipt_number: string;
+  subtotal: number;
+  created_at: string;
+  line_items: { metal_name: string; weight: number; total: number }[];
+}
+
+export default function CustomerProfileScreen({ route, navigation }: Props) {
+  const { t } = useT();
+  const { customerId } = route.params;
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [c, r] = await Promise.all([
+        fetchCustomerById(customerId),
+        fetchCustomerReceipts(customerId),
+      ]);
+      setCustomer(c);
+      setReceipts(r as ReceiptRow[]);
+      if (c) setNotes(c.notes);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, [customerId, t.error]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
+
+  const handleScanId = async () => {
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    });
+    if (result.canceled || !customer) return;
+
+    setUploading(true);
+    try {
+      const url = await uploadCustomerIdPhoto(
+        customer.id,
+        result.assets[0].uri
+      );
+      setCustomer({ ...customer, dl_photo_uri: url });
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSaveNotes = async () => {
+    if (!customer) return;
+    setSavingNotes(true);
+    try {
+      await updateCustomer(customer.id, { notes });
+      setCustomer({ ...customer, notes });
+      setEditingNotes(false);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const totalSpent = receipts.reduce(
+    (sum, r) => sum + Number(r.subtotal ?? 0),
+    0
+  );
+
+  const handlePrintStatement = async () => {
+    if (!customer) return;
+    try {
+      const company = await fetchCompanySettings();
+      const companyHeader = company
+        ? `<h2 style="margin:0">${company.company_name}</h2>
+           <p style="margin:4px 0;color:#666">${company.address}</p>
+           <p style="margin:4px 0;color:#666">${company.phone}</p>`
+        : '';
+
+      const rows = receipts
+        .map(
+          (r) => `
+        <tr>
+          <td>${new Date(r.created_at).toLocaleDateString()}</td>
+          <td>${r.receipt_number}</td>
+          <td>${r.line_items.map((li) => `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`).join(', ')}</td>
+          <td style="text-align:right">$${Number(r.subtotal).toFixed(2)}</td>
+        </tr>`
+        )
+        .join('');
+
+      const html = `
+        <html><head><style>
+          body { font-family: sans-serif; padding: 20px; font-size: 14px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background: #f5f5f5; font-weight: bold; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .summary { margin: 16px 0; padding: 12px; background: #f9f9f9; border-radius: 8px; }
+        </style></head><body>
+          <div class="header">
+            ${companyHeader}
+            <hr/>
+            <h3>${t.statementFor} ${customer.name}</h3>
+            <p style="color:#666">${t.generatedOn} ${new Date().toLocaleDateString()}</p>
+          </div>
+          <div class="summary">
+            <strong>${t.totalTransactions}:</strong> ${receipts.length} &nbsp;&nbsp;
+            <strong>${t.totalSpent}:</strong> $${totalSpent.toFixed(2)}
+          </div>
+          ${customer.drivers_license ? `<p><strong>${t.dlNumber}:</strong> ${customer.drivers_license}</p>` : ''}
+          ${customer.phone ? `<p><strong>${t.phone}:</strong> ${customer.phone}</p>` : ''}
+          <table>
+            <thead><tr>
+              <th>${t.transactionDate}</th>
+              <th>${t.receipt}</th>
+              <th>${t.materialDescription}</th>
+              <th style="text-align:right">${t.amountPaid}</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+            <tfoot><tr>
+              <td colspan="3" style="text-align:right;font-weight:bold">${t.total}</td>
+              <td style="text-align:right;font-weight:bold">$${totalSpent.toFixed(2)}</td>
+            </tr></tfoot>
+          </table>
+        </body></html>`;
+
+      await Print.printAsync({ html });
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.errorText}>{t.error}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* ID Photo Section */}
+      <View style={styles.idSection}>
+        <TouchableOpacity
+          style={styles.idPhotoBox}
+          onPress={handleScanId}
+          disabled={uploading}
+        >
+          {uploading ? (
+            <ActivityIndicator color={colors.accent} size="large" />
+          ) : customer.dl_photo_uri ? (
+            <Image
+              source={{ uri: customer.dl_photo_uri }}
+              style={styles.idPhoto}
+              resizeMode="contain"
+            />
+          ) : (
+            <View style={styles.idPlaceholder}>
+              <Ionicons name="camera" size={32} color={colors.textTertiary} />
+              <Text style={styles.idPlaceholderText}>{t.scanId}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {customer.dl_photo_uri && (
+          <TouchableOpacity
+            style={styles.updateIdButton}
+            onPress={handleScanId}
+          >
+            <Text style={styles.updateIdText}>{t.updateId}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Customer Info */}
+      <View style={styles.infoSection}>
+        <Text style={styles.customerName}>{customer.name}</Text>
+        {customer.phone ? (
+          <Text style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.phone}: </Text>
+            {customer.phone}
+          </Text>
+        ) : null}
+        {customer.drivers_license ? (
+          <Text style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.dlNumber}: </Text>
+            {customer.drivers_license}
+          </Text>
+        ) : null}
+        {customer.address ? (
+          <Text style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.address}: </Text>
+            {customer.address}
+          </Text>
+        ) : null}
+        {customer.dob ? (
+          <Text style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{t.dateOfBirth}: </Text>
+            {new Date(customer.dob).toLocaleDateString()}
+          </Text>
+        ) : null}
+      </View>
+
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>{receipts.length}</Text>
+          <Text style={styles.statLabel}>{t.totalTransactions}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>${totalSpent.toFixed(2)}</Text>
+          <Text style={styles.statLabel}>{t.totalSpent}</Text>
+        </View>
+        <View style={styles.statDivider} />
+        <View style={styles.statBox}>
+          <Text style={styles.statNumber}>
+            {new Date(customer.created_at).toLocaleDateString()}
+          </Text>
+          <Text style={styles.statLabel}>{t.memberSince}</Text>
+        </View>
+      </View>
+
+      {/* Notes */}
+      <View style={styles.notesSection}>
+        <View style={styles.notesHeader}>
+          <Text style={styles.sectionTitle}>{t.customerNotes}</Text>
+          {!editingNotes && (
+            <TouchableOpacity onPress={() => setEditingNotes(true)}>
+              <Ionicons name="pencil" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
+        {editingNotes ? (
+          <View>
+            <TextInput
+              style={styles.notesInput}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t.notesPlaceholder}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+              numberOfLines={3}
+            />
+            <View style={styles.notesActions}>
+              <TouchableOpacity
+                onPress={() => {
+                  setNotes(customer.notes);
+                  setEditingNotes(false);
+                }}
+              >
+                <Text style={styles.notesCancelText}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.notesSaveButton}
+                onPress={handleSaveNotes}
+                disabled={savingNotes}
+              >
+                {savingNotes ? (
+                  <ActivityIndicator color={colors.background} size="small" />
+                ) : (
+                  <Text style={styles.notesSaveText}>{t.save}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <Text style={styles.notesText}>
+            {customer.notes || t.notesPlaceholder}
+          </Text>
+        )}
+      </View>
+
+      {/* Transaction History */}
+      <View style={styles.historySection}>
+        <Text style={styles.sectionTitle}>{t.customerHistory}</Text>
+        {receipts.length === 0 ? (
+          <Text style={styles.emptyText}>{t.noTransactions}</Text>
+        ) : (
+          receipts.map((r) => (
+            <TouchableOpacity
+              key={r.id}
+              style={styles.receiptCard}
+              onPress={() =>
+                navigation.getParent()?.navigate('TransactionsTab', {
+                  screen: 'ReceiptDetail',
+                  params: { receiptId: r.id },
+                })
+              }
+            >
+              <View style={styles.receiptHeader}>
+                <Text style={styles.receiptNumber}>{r.receipt_number}</Text>
+                <Text style={styles.receiptTotal}>
+                  ${Number(r.subtotal).toFixed(2)}
+                </Text>
+              </View>
+              <Text style={styles.receiptDate}>
+                {new Date(r.created_at).toLocaleDateString()}
+              </Text>
+              <Text style={styles.receiptItems}>
+                {r.line_items
+                  .map(
+                    (li) =>
+                      `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`
+                  )
+                  .join(', ')}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      {/* Print Button */}
+      <TouchableOpacity
+        style={styles.printButton}
+        onPress={handlePrintStatement}
+      >
+        <Ionicons name="print" size={20} color={colors.background} />
+        <Text style={styles.printButtonText}>{t.printStatement}</Text>
+      </TouchableOpacity>
+
+      <View style={{ height: spacing.xxxl }} />
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background,
+  },
+  errorText: {
+    color: colors.danger,
+    fontSize: fontSize.lg,
+  },
+  idSection: {
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  idPhotoBox: {
+    width: '100%',
+    height: 200,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  idPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  idPlaceholder: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  idPlaceholderText: {
+    color: colors.textTertiary,
+    fontSize: fontSize.md,
+  },
+  updateIdButton: {
+    marginTop: spacing.sm,
+  },
+  updateIdText: {
+    color: colors.accent,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  infoSection: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  customerName: {
+    color: colors.textPrimary,
+    fontSize: fontSize.xxl,
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  infoRow: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    marginBottom: spacing.xs,
+  },
+  infoLabel: {
+    color: colors.textTertiary,
+    fontWeight: '600',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.lg,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statNumber: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+  },
+  statLabel: {
+    color: colors.textSecondary,
+    fontSize: fontSize.xs,
+    marginTop: spacing.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: colors.border,
+  },
+  notesSection: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  notesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  sectionTitle: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+  },
+  notesInput: {
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    fontSize: fontSize.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  notesActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+    alignItems: 'center',
+  },
+  notesCancelText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+  },
+  notesSaveButton: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.sm,
+  },
+  notesSaveText: {
+    color: colors.background,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  notesText: {
+    color: colors.textTertiary,
+    fontSize: fontSize.md,
+    fontStyle: 'italic',
+  },
+  historySection: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  emptyText: {
+    color: colors.textTertiary,
+    fontSize: fontSize.md,
+    marginTop: spacing.md,
+  },
+  receiptCard: {
+    backgroundColor: colors.card,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginTop: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  receiptNumber: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+  },
+  receiptTotal: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+  },
+  receiptDate: {
+    color: colors.textTertiary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  receiptItems: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  printButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.accent,
+    marginHorizontal: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+  },
+  printButtonText: {
+    color: colors.background,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+  },
+});

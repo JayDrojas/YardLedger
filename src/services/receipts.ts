@@ -11,6 +11,9 @@ interface CreateReceiptParams {
   signatureUri?: string | null;
   workerId: string;
   notes?: string;
+  vehiclePlate?: string;
+  vehicleDescription?: string;
+  sellerAffirmed?: boolean;
   lineItems: LineItemInput[];
 }
 
@@ -33,6 +36,9 @@ export async function createReceipt(params: CreateReceiptParams) {
       signature_uri: params.signatureUri,
       worker_id: params.workerId,
       notes: params.notes,
+      vehicle_plate: params.vehiclePlate ?? '',
+      vehicle_description: params.vehicleDescription ?? '',
+      seller_affirmed: params.sellerAffirmed ?? false,
     })
     .select()
     .single();

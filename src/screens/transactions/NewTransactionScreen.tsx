@@ -174,6 +174,23 @@ export default function NewTransactionScreen({ navigation }: Props) {
           keyboardType="phone-pad"
         />
 
+        <Text style={styles.sectionTitle}>{t.vehicleInfo}</Text>
+        <TextInput
+          style={styles.input}
+          placeholder={t.vehiclePlate}
+          placeholderTextColor={colors.textTertiary}
+          value={tx.vehiclePlate}
+          onChangeText={tx.setVehiclePlate}
+          autoCapitalize="characters"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={t.vehicleDescription}
+          placeholderTextColor={colors.textTertiary}
+          value={tx.vehicleDescription}
+          onChangeText={tx.setVehicleDescription}
+        />
+
         <TouchableOpacity
           style={styles.addLineItemButton}
           onPress={() => setShowAddModal(true)}
@@ -269,6 +286,30 @@ export default function NewTransactionScreen({ navigation }: Props) {
           <Text style={styles.totalLabel}>{t.receiptTotal}</Text>
           <Text style={styles.totalValue}>${tx.receiptTotal.toFixed(2)}</Text>
         </View>
+
+        {/* Seller Affirmation */}
+        <TouchableOpacity
+          style={styles.affirmationRow}
+          onPress={() => tx.setSellerAffirmed(!tx.sellerAffirmed)}
+        >
+          <View
+            style={[
+              styles.checkbox,
+              tx.sellerAffirmed && styles.checkboxChecked,
+            ]}
+          >
+            {tx.sellerAffirmed && <Text style={styles.checkmark}>✓</Text>}
+          </View>
+          <Text style={styles.affirmationText}>{t.sellerAffirmation}</Text>
+        </TouchableOpacity>
+
+        {tx.hasRestrictedMetal && (
+          <View style={styles.restrictedBanner}>
+            <Text style={styles.restrictedBannerText}>
+              {t.restrictedWarning}
+            </Text>
+          </View>
+        )}
 
         <SignaturePad
           ref={signaturePadRef}
@@ -728,5 +769,47 @@ const styles = StyleSheet.create({
   viewReceiptButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+  },
+  affirmationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  checkmark: {
+    color: colors.background,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
+  affirmationText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    flex: 1,
+  },
+  restrictedBanner: {
+    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.warning,
+  },
+  restrictedBannerText: {
+    color: colors.warning,
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
 });

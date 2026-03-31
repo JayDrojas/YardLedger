@@ -33,6 +33,7 @@ export interface Metal {
   name: string;
   price_per_lb: number;
   is_active: boolean;
+  is_restricted: boolean;
   category_id: string | null;
 }
 
