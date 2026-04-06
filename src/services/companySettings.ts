@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 
 export interface CompanySettings {
@@ -60,9 +60,8 @@ export async function uploadCompanyLogo(
   const fileName = `logo_${Date.now()}.jpg`;
 
   // Read image as base64
-  const base64 = await FileSystem.readAsStringAsync(imageUri, {
-    encoding: 'base64',
-  });
+  const file = new File(imageUri);
+  const base64 = await file.base64();
 
   const { error: uploadError } = await supabase.storage
     .from('company-logos')

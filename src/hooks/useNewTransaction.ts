@@ -19,12 +19,36 @@ export function useNewTransaction(
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
-  const [vehiclePlate, setVehiclePlate] = useState('');
-  const [vehicleDescription, setVehicleDescription] = useState('');
-  const [sellerAffirmed, setSellerAffirmed] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemInput[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [sellerAffirmed, setSellerAffirmed] = useState(false);
+
+  // Seller ID (regulated materials — NM Purchase Record)
+  const [sellerName, setSellerName] = useState('');
+  const [sellerDlNumber, setSellerDlNumber] = useState('');
+  const [sellerStateOfIssue, setSellerStateOfIssue] = useState('');
+  const [sellerDob, setSellerDob] = useState('');
+  const [sellerAddress, setSellerAddress] = useState('');
+  const [sellerCity, setSellerCity] = useState('');
+  const [sellerState, setSellerState] = useState('');
+  const [sellerZip, setSellerZip] = useState('');
+  const [sellerIdPhotoUri, setSellerIdPhotoUri] = useState<string | null>(null);
+
+  // Vehicle info (regulated materials)
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [vehicleYear, setVehicleYear] = useState('');
+  const [vehicleMake, setVehicleMake] = useState('');
+  const [vehicleModel, setVehicleModel] = useState('');
+  const [vehicleColor, setVehicleColor] = useState('');
+
+  // Catalytic converter (restricted — additional NM documentation)
+  const [catConverterNumbers, setCatConverterNumbers] = useState('');
+  const [transportVin, setTransportVin] = useState('');
+  const [catConverterPhotoUri, setCatConverterPhotoUri] = useState<
+    string | null
+  >(null);
+  const [catTitlePhotoUri, setCatTitlePhotoUri] = useState<string | null>(null);
 
   // Price override state
   const [showCodeModal, setShowCodeModal] = useState(false);
@@ -34,6 +58,11 @@ export function useNewTransaction(
 
   // Derived values
   const receiptTotal = calculateReceiptTotal(lineItems);
+  const hasRegulatedMetal = lineItems.some((item) => item.isRegulated);
+  const hasRestrictedMetal = lineItems.some((item) => item.isRestricted);
+  const hasCatalyticConverter = lineItems.some((item) =>
+    item.metalName.toLowerCase().includes('catalytic')
+  );
 
   const addLineItem = (
     metal: Metal,
@@ -53,6 +82,7 @@ export function useNewTransaction(
         isPriceOverride: false,
         overrideApprovedBy: null,
         total: calculateLineItemTotal(weight, metal.price_per_lb),
+        isRegulated: metal.is_regulated,
         isRestricted: metal.is_restricted,
       },
     ]);
@@ -93,7 +123,7 @@ export function useNewTransaction(
               ...item,
               pricePerLb: newPrice,
               isPriceOverride: true,
-              overrideApprovedBy: 'access_code',
+              overrideApprovedBy: null,
               total: calculateLineItemTotal(item.weight, newPrice),
             }
           : item
@@ -116,16 +146,30 @@ export function useNewTransaction(
     setOverridePrice('');
   };
 
-  const hasRestrictedMetal = lineItems.some((item) => item.isRestricted);
-
   const resetForm = (keepCustomer = false) => {
     if (!keepCustomer) {
       setCustomerName('');
       setCustomerPhone('');
     }
-    setVehiclePlate('');
-    setVehicleDescription('');
     setSellerAffirmed(false);
+    setSellerName('');
+    setSellerDlNumber('');
+    setSellerStateOfIssue('');
+    setSellerDob('');
+    setSellerAddress('');
+    setSellerCity('');
+    setSellerState('');
+    setSellerZip('');
+    setSellerIdPhotoUri(null);
+    setCatConverterNumbers('');
+    setTransportVin('');
+    setCatConverterPhotoUri(null);
+    setCatTitlePhotoUri(null);
+    setVehiclePlate('');
+    setVehicleYear('');
+    setVehicleMake('');
+    setVehicleModel('');
+    setVehicleColor('');
     setLineItems([]);
     setSignature(null);
     setSaving(false);
@@ -137,7 +181,11 @@ export function useNewTransaction(
   };
 
   const saveReceipt = async (
-    onSuccess: (receiptId: string, customerId: string) => void,
+    onSuccess: (
+      receiptId: string,
+      customerId: string,
+      sellerIdPhotoUrl: string | null
+    ) => void,
     customerId?: string
   ) => {
     if (!customerName.trim()) {
@@ -148,8 +196,14 @@ export function useNewTransaction(
       Alert.alert(t.error, t.addAtLeastOneItem);
       return;
     }
-    if (hasRestrictedMetal) {
-      if (!vehiclePlate.trim() || !vehicleDescription.trim()) {
+
+    // Tier 2: Regulated material requires ID + vehicle
+    if (hasRegulatedMetal) {
+      if (!sellerName.trim() || !sellerDlNumber.trim()) {
+        Alert.alert(t.error, t.sellerIdRequired);
+        return;
+      }
+      if (!vehiclePlate.trim()) {
         Alert.alert(t.error, t.vehicleRequired);
         return;
       }
@@ -158,6 +212,15 @@ export function useNewTransaction(
         return;
       }
     }
+
+    // Tier 3+: Catalytic converter requires VIN + photos
+    if (hasCatalyticConverter) {
+      if (!transportVin.trim() || transportVin.trim().length !== 17) {
+        Alert.alert(t.error, t.vinRequired);
+        return;
+      }
+    }
+
     if (!profile) {
       Alert.alert(t.error, 'No user profile found');
       return;
@@ -185,11 +248,31 @@ export function useNewTransaction(
         workerId: profile.id,
         notes: '',
         vehiclePlate,
-        vehicleDescription,
+        vehicleYear,
+        vehicleMake,
+        vehicleModel,
+        vehicleColor,
         sellerAffirmed,
+        sellerName,
+        sellerDlNumber,
+        sellerStateOfIssue,
+        sellerDob,
+        sellerAddress,
+        sellerCity,
+        sellerState,
+        sellerZip,
+        sellerIdPhotoUri,
+        catConverterNumbers,
+        transportVin,
+        catConverterPhotoUri,
+        catTitlePhotoUri,
         lineItems,
       });
-      onSuccess(receipt.id, receipt.customer_id);
+      onSuccess(
+        receipt.id,
+        receipt.customer_id,
+        receipt.seller_id_photo_uri ?? null
+      );
     } catch (err) {
       console.error('[saveReceipt] Error:', err);
       Alert.alert(t.error, (err as Error).message);
@@ -203,10 +286,28 @@ export function useNewTransaction(
     lineItems,
     customerName,
     customerPhone,
-    vehiclePlate,
-    vehicleDescription,
     sellerAffirmed,
+    sellerName,
+    sellerDlNumber,
+    sellerStateOfIssue,
+    sellerDob,
+    sellerAddress,
+    sellerCity,
+    sellerState,
+    sellerZip,
+    sellerIdPhotoUri,
+    vehiclePlate,
+    vehicleYear,
+    vehicleMake,
+    vehicleModel,
+    vehicleColor,
+    catConverterNumbers,
+    transportVin,
+    catConverterPhotoUri,
+    catTitlePhotoUri,
+    hasRegulatedMetal,
     hasRestrictedMetal,
+    hasCatalyticConverter,
     receiptTotal,
     signature,
     saving,
@@ -219,9 +320,25 @@ export function useNewTransaction(
     // Setters
     setCustomerName,
     setCustomerPhone,
-    setVehiclePlate,
-    setVehicleDescription,
     setSellerAffirmed,
+    setSellerName,
+    setSellerDlNumber,
+    setSellerStateOfIssue,
+    setSellerDob,
+    setSellerAddress,
+    setSellerCity,
+    setSellerState,
+    setSellerZip,
+    setSellerIdPhotoUri,
+    setCatConverterNumbers,
+    setTransportVin,
+    setCatConverterPhotoUri,
+    setCatTitlePhotoUri,
+    setVehiclePlate,
+    setVehicleYear,
+    setVehicleMake,
+    setVehicleModel,
+    setVehicleColor,
     setOverridePrice,
     setSignature,
 

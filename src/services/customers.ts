@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import * as FileSystem from 'expo-file-system';
+import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 
 export interface Customer {
@@ -118,15 +118,25 @@ export async function updateCustomer(
   return data;
 }
 
+export async function updateCustomerIdPhoto(
+  customerId: string,
+  photoUrl: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('customers')
+    .update({ dl_photo_uri: photoUrl })
+    .eq('id', customerId);
+  if (error) throw error;
+}
+
 export async function uploadCustomerIdPhoto(
   customerId: string,
   imageUri: string
 ): Promise<string> {
   const fileName = `${customerId}_${Date.now()}.jpg`;
 
-  const base64 = await FileSystem.readAsStringAsync(imageUri, {
-    encoding: 'base64',
-  });
+  const file = new File(imageUri);
+  const base64 = await file.base64();
 
   const { error: uploadError } = await supabase.storage
     .from('customer-ids')
