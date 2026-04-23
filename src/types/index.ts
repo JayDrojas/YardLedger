@@ -1,6 +1,12 @@
-export type UserRole = 'admin' | 'worker';
+export type UserRole = 'owner' | 'admin' | 'worker';
 
 export type ReceiptType = 'buy' | 'sell';
+
+export interface Company {
+  id: string;
+  name: string;
+  prefix: string;
+}
 
 export interface CustomerInfo {
   name: string;
@@ -47,6 +53,7 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   isActive: boolean;
+  companyId: string;
 }
 
 export interface ParsedIdFields {
