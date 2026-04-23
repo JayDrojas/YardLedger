@@ -8,3 +8,4 @@ export { useNewTransaction } from './useNewTransaction';
 export { useAdminVerification } from './useAdminVerification';
 export { useUserApproval } from './useUserApproval';
 export { useIdScanner } from './useIdScanner';
+export { useCurrentCompany } from './useCurrentCompany';
