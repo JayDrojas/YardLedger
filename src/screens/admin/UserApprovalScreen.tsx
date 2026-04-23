@@ -40,7 +40,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
     if (!profile) return;
     setGenerating(true);
     try {
-      const code = await createAccessCode(profile.id);
+      const code = await createAccessCode();
       setGeneratedCode(code);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);

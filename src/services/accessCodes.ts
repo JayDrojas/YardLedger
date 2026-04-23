@@ -1,17 +1,9 @@
 import { supabase } from '../config/supabase';
 
-function generateCode(): string {
-  // 6-digit numeric code
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-export async function createAccessCode(createdBy: string): Promise<string> {
-  const code = generateCode();
-  const { error } = await supabase
-    .from('access_codes')
-    .insert({ code, created_by: createdBy });
+export async function createAccessCode(): Promise<string> {
+  const { data, error } = await supabase.rpc('create_access_code');
   if (error) throw error;
-  return code;
+  return data as string;
 }
 
 export async function validateAccessCode(code: string): Promise<boolean> {
