@@ -15,12 +15,10 @@ export async function createAccessCode(createdBy: string): Promise<string> {
 }
 
 export async function validateAccessCode(code: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('access_codes')
-    .select('id')
-    .eq('code', code)
-    .limit(1)
-    .single();
+  const { data, error } = await supabase.rpc('validate_access_code', {
+    p_code: code,
+  });
 
-  return !error && !!data;
+  if (error) return false;
+  return data === true;
 }
