@@ -30,6 +30,17 @@ export default {
   registrationFailed: 'Registro Fallido',
   alreadyHaveAccount: '¿Ya tienes cuenta? Inicia Sesión',
   inviteCode: 'Código de Invitación',
+  inviteUser: 'Invitar Usuario',
+  roleWorker: 'Trabajador',
+  roleAdmin: 'Administrador',
+  roleOwner: 'Propietario',
+  generateInviteCode: 'Generar Código',
+  unusedInviteCodes: 'Códigos de Invitación Sin Usar',
+  noUnusedInviteCodes: 'Sin códigos de invitación sin usar',
+  shareInviteCode:
+    'Comparte este código con la persona que deseas invitar. Lo ingresa al registrarse.',
+  makeOwner: 'Hacer Propietario',
+  makeWorker: 'Hacer Trabajador',
 
   // Auth - Pending
   accountPending: 'Cuenta Pendiente',

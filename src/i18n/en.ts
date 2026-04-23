@@ -30,6 +30,17 @@ export default {
   registrationFailed: 'Registration Failed',
   alreadyHaveAccount: 'Already have an account? Sign In',
   inviteCode: 'Invite Code',
+  inviteUser: 'Invite User',
+  roleWorker: 'Worker',
+  roleAdmin: 'Admin',
+  roleOwner: 'Owner',
+  generateInviteCode: 'Generate Invite Code',
+  unusedInviteCodes: 'Unused Invite Codes',
+  noUnusedInviteCodes: 'No unused invite codes',
+  shareInviteCode:
+    'Share this code with the person you want to invite. They enter it when signing up.',
+  makeOwner: 'Make Owner',
+  makeWorker: 'Make Worker',
 
   // Auth - Pending
   accountPending: 'Account Pending',
