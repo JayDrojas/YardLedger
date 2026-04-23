@@ -29,6 +29,7 @@ export default {
   accountCreated: 'Account created! Check your email for verification.',
   registrationFailed: 'Registration Failed',
   alreadyHaveAccount: 'Already have an account? Sign In',
+  inviteCode: 'Invite Code',
 
   // Auth - Pending
   accountPending: 'Account Pending',

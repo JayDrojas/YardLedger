@@ -7,3 +7,4 @@ export * as accessCodesService from './accessCodes';
 export * as reportsService from './reports';
 export * as companySettingsService from './companySettings';
 export * as companiesService from './companies';
+export * as inviteCodesService from './inviteCodes';

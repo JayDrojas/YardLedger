@@ -111,11 +111,20 @@ export const signIn = createAsyncThunk(
 
 export const signUp = createAsyncThunk(
   'auth/signUp',
-  async ({ email, password }: { email: string; password: string }) => {
+  async ({
+    email,
+    password,
+    inviteCode,
+  }: {
+    email: string;
+    password: string;
+    inviteCode: string;
+  }) => {
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        data: { invite_code: inviteCode },
         emailRedirectTo: 'yardledger://auth/callback',
       },
     });

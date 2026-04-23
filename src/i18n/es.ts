@@ -29,6 +29,7 @@ export default {
   accountCreated: '¡Cuenta creada! Revisa tu correo para la verificación.',
   registrationFailed: 'Registro Fallido',
   alreadyHaveAccount: '¿Ya tienes cuenta? Inicia Sesión',
+  inviteCode: 'Código de Invitación',
 
   // Auth - Pending
   accountPending: 'Cuenta Pendiente',
